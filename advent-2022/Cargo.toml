@@ -1,8 +1,21 @@
 [package]
 name = "advent-2022-rs"
 version = "0.1.0"
+authors = ["qalisander <qalisander@gmail.com>"]
 edition = "2021"
+default-run = 'main'
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+tokio = { version = "1.22.0", features = ["full"] }
+reqwest = "0.11.13"
+itertools = "0.10.5"
+
+[[bin]]
+name = "main"
+path = "src/main.rs"
+
+[[bin]]
+name = "day_4"
+path = "src/day_4/camp_cleanup.rs"
