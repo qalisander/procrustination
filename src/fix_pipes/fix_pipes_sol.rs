@@ -62,7 +62,7 @@ impl Display for PipeChecker {
             .iter()
             .flat_map(|vec| {
                 vec.iter()
-                    .map(|tile| {
+                    .map(|tile| {   
                         if tile.is_visited {
                             "*".to_string()
                         } else {
@@ -78,20 +78,19 @@ impl Display for PipeChecker {
 
 impl PipeChecker {
     fn new(pipe_map: &[&str]) -> PipeChecker {
-        Self {
-            map: pipe_map
-                .iter()
-                .map(|slice| {
-                    slice
-                        .chars()
-                        .map(|ch| Tile {
-                            symbol: ch,
-                            is_visited: false,
-                        })
-                        .collect::<Vec<Tile>>()
-                })
-                .collect_vec(),
-        }
+        let vec = pipe_map
+            .iter()
+            .map(|slice| {
+                slice
+                    .chars()
+                    .map(|ch| Tile {
+                        symbol: ch,
+                        is_visited: false,
+                    })
+                    .collect::<Vec<Tile>>()
+            })
+            .collect_vec();
+        Self { map: vec }
     }
 
     fn check(&mut self) -> bool {
