@@ -19,7 +19,6 @@ pub mod sudoku;
 pub mod spiral;
 mod test_frameworks_test;
 pub mod nonogram_solvers;
-mod interpreters;
 mod blox_solver;
 mod street_fighter;
 pub mod transforming_maze_solver;
