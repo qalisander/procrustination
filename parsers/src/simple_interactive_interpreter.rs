@@ -1,10 +1,10 @@
 // https://www.codewars.com/kata/52ffcfa4aff455b3c2000750/train/rust
-use std::collections::{HashMap};
-use itertools::{EitherOrBoth, Itertools,};
+use itertools::{EitherOrBoth, Itertools};
+use rand::rngs::mock::StepRng;
+use std::collections::HashMap;
 use std::iter;
 use std::iter::Peekable;
 use std::ops::Deref;
-use rand::rngs::mock::StepRng;
 
 // TODO: end of string token and make programs bit more difficult
 // TODO: errors highlighting
@@ -29,6 +29,18 @@ enum TType {
 }
 
 #[derive(Clone, Debug)]
+enum Stmt {
+    FnDeclaration { identifier: String, body: FnBody },
+    Expr(Expr),
+}
+
+impl From<Expr> for Stmt {
+    fn from(expr: Expr) -> Stmt {
+        Self::Expr(expr)
+    }
+}
+
+#[derive(Clone, Debug)]
 enum Expr {
     Binary(Box<Expr>, char, Box<Expr>),
     Unary(char, Box<Expr>),
@@ -42,17 +54,7 @@ enum Expr {
 }
 
 #[derive(Clone, Debug)]
-enum Stmt {
-    FnDeclaration { identifier: String, body: FnBody },
-    Expr(Expr),
-}
-
-impl From<Expr> for Stmt {
-    fn from(expr: Expr) -> Stmt { Self::Expr(expr) }
-}
-
-#[derive(Clone, Debug)]
-enum Identifier{
+enum Identifier {
     Fn(FnBody),
     Var(Vec<StepRng>),
 }
@@ -73,17 +75,17 @@ struct Interpreter {
 }
 
 impl Interpreter {
-
     fn new() -> Interpreter {
-        Self{
+        Self {
             vars: HashMap::new(),
             funcs: HashMap::new(),
         }
     }
 
-    fn input(& mut self, input: & str) -> Result<Option<f32>, String> {
+    fn input(&mut self, input: &str) -> Result<Option<f32>, String> {
         let tokens = scan(input);
-        if tokens.clone().next().is_none() { // crutch
+        if tokens.clone().next().is_none() {
+            // crutch
             return Ok(None);
         }
         let mut parser = Parser::new(tokens, &self.funcs);
@@ -91,18 +93,17 @@ impl Interpreter {
         self.interpret(statement)
     }
 
-    fn interpret(&mut self, stmt: Stmt) -> Result<Option<f32>, String>{
+    fn interpret(&mut self, stmt: Stmt) -> Result<Option<f32>, String> {
         match stmt {
             Stmt::FnDeclaration { identifier, body } => {
                 self.check_fn_body(&body)?;
                 if self.vars.contains_key(&identifier) {
-                    Err(format!("ERROR: Name '{0}' already exist", {identifier}))
-                }
-                else {
+                    Err(format!("ERROR: Name '{0}' already exist", { identifier }))
+                } else {
                     self.funcs.insert(identifier, body);
                     Ok(None)
                 }
-            },
+            }
             Stmt::Expr(expr) => self.eval(&expr).map(Some),
         }
     }
@@ -113,20 +114,21 @@ impl Interpreter {
             return Err(format!("ERROR: Duplicates in function:\n{fn_body:?}"));
         }
 
-        let param_not_exist = |identifier: &String| {
-            !fn_body.params.contains(identifier)
-        };
+        let param_not_exist = |identifier: &String| !fn_body.params.contains(identifier);
 
         let mut stack = vec![fn_body.callee.deref()];
         loop {
             match stack.pop() {
-                Some(expr) => match expr{
+                Some(expr) => match expr {
                     Expr::Binary(left, _, right) => stack.extend([left.deref(), right]),
                     Expr::Unary(_, expr) => stack.push(expr),
                     Expr::Grouping(expr) => stack.push(expr),
-                    Expr::Fn {args, ..} => stack.extend(args.iter()),
-                    Expr::Var(identifier) if param_not_exist(identifier) =>
-                        break Err(format!("ERROR: Invalid identifier '{identifier}' in function body")),
+                    Expr::Fn { args, .. } => stack.extend(args.iter()),
+                    Expr::Var(identifier) if param_not_exist(identifier) => {
+                        break Err(format!(
+                            "ERROR: Invalid identifier '{identifier}' in function body"
+                        ))
+                    }
                     _ => (),
                 },
                 None => break Ok(()),
@@ -136,20 +138,17 @@ impl Interpreter {
 
     fn eval(&mut self, expr: &Expr) -> Result<f32, String> {
         match expr {
-            Expr::Binary(left, '=', right) =>{
-                match left.deref() {
-                    Expr::Var(identifier) => {
-                        let val = self.eval(right)?;
-                        if self.funcs.contains_key(identifier) {
-                            Err(format!("ERROR: Name '{identifier}' already exist"))
-                        }
-                        else {
-                            self.vars.insert(identifier.clone(), vec![val]);
-                            Ok(val)
-                        }
-                    },
-                    _ => Err(format!("ERROR: Invalid assigment!\n {expr:?}"))
+            Expr::Binary(left, '=', right) => match left.deref() {
+                Expr::Var(identifier) => {
+                    let val = self.eval(right)?;
+                    if self.funcs.contains_key(identifier) {
+                        Err(format!("ERROR: Name '{identifier}' already exist"))
+                    } else {
+                        self.vars.insert(identifier.clone(), vec![val]);
+                        Ok(val)
+                    }
                 }
+                _ => Err(format!("ERROR: Invalid assigment!\n {expr:?}")),
             },
             Expr::Binary(left, ch, right) => match ch {
                 '+' => Ok(self.eval(left)? + self.eval(right)?),
@@ -162,30 +161,38 @@ impl Interpreter {
             Expr::Unary(ch, expr) => Ok(-self.eval(expr)?),
             Expr::Grouping(expr) => self.eval(expr),
             Expr::Num(num) => Ok(*num),
-            Expr::Var(fn_identifier) => self.vars.get(fn_identifier)
+            Expr::Var(fn_identifier) => self
+                .vars
+                .get(fn_identifier)
                 .and_then(|val| val.last())
                 .cloned()
-                .ok_or(format!("ERROR: Invalid variable identifier '{fn_identifier:?}'")),
-            Expr::Fn {args: expr_args, identifier} => {
-                let args: Vec<_> = expr_args.iter()
-                    .map(|arg| self.eval(arg))
-                    .try_collect()?;
+                .ok_or(format!(
+                    "ERROR: Invalid variable identifier '{fn_identifier:?}'"
+                )),
+            Expr::Fn {
+                args: expr_args,
+                identifier,
+            } => {
+                let args: Vec<_> = expr_args.iter().map(|arg| self.eval(arg)).try_collect()?;
 
-                let func_body = self.funcs.get(identifier)
+                let func_body = self
+                    .funcs
+                    .get(identifier)
                     .ok_or(format!("ERROR: Invalid function identifier '{identifier}'"))?;
 
-                let vars: Vec<_> = func_body.params.iter()
+                let vars: Vec<_> = func_body
+                    .params
+                    .iter()
                     .zip_longest(args)
-                    .map(|arg| {
-                        match &arg {
-                            &EitherOrBoth::Both(param, arg) => Ok((param, arg)),
-                            _ => Err(format!("ERROR: Invalid function '{identifier}' params")),
-                        }
-                }).try_collect()?;
+                    .map(|arg| match &arg {
+                        &EitherOrBoth::Both(param, arg) => Ok((param, arg)),
+                        _ => Err(format!("ERROR: Invalid function '{identifier}' params")),
+                    })
+                    .try_collect()?;
 
                 for (identifier, value) in vars {
                     self.vars.entry(identifier.into()).or_default().push(value);
-                };
+                }
 
                 let func_body = func_body.deref().clone();
                 let expr = self.eval(&func_body.callee)?;
@@ -194,31 +201,41 @@ impl Interpreter {
                     self.vars.get_mut(identifier).unwrap().pop();
                 }
                 Ok(expr)
-            },
+            }
         }
     }
 }
 
 struct Parser<'a, T>
-    where T: Iterator<Item=Token> + Clone
+where
+    T: Iterator<Item = Token> + Clone,
 {
     tokens: Peekable<T>,
     funcs: &'a HashMap<String, FnBody>,
 }
 
-impl<'a,T> Parser<'a, T>
-    where T: Iterator<Item=Token> + Clone
+impl<'a, T> Parser<'a, T>
+where
+    T: Iterator<Item = Token> + Clone,
 {
-    fn new(tokens: T, funcs: &'a HashMap<String, FnBody>) -> Self{
-        Parser{ tokens: tokens.peekable(), funcs }
+    fn new(tokens: T, funcs: &'a HashMap<String, FnBody>) -> Self {
+        Parser {
+            tokens: tokens.peekable(),
+            funcs,
+        }
     }
 
-    /// - statement      → "fn" fn_identifier "=>" expression | (identifier "=")? expression ;
-    /// - expression     → term | fn_identifier (expression)*;
-    /// - term           → factor ( ( "-" | "+" ) factor )* ;
-    /// - factor         → unary ( ( "/" | "*" ) unary )* ;
-    /// - unary          → "-" unary | primary ;
-    /// - primary        → "(" expression ")" | identifier | number;
+    ///  statement      → "fn" fn_identifier "=>" expression | (identifier "=")? expression
+    ///
+    ///  expression     → term | fn_identifier (expression)*
+    ///
+    ///  term           → factor ( ( "-" | "+" ) factor )*
+    ///
+    ///  factor         → unary ( ( "/" | "*" ) unary )*
+    ///
+    ///  unary          → "-" unary | primary
+    ///
+    ///  primary        → "(" expression ")" | identifier | number
     fn parse(&mut self) -> Result<Stmt, String> {
         let expr = self.stmt();
         return match self.tokens.next() {
@@ -228,18 +245,31 @@ impl<'a,T> Parser<'a, T>
     }
 
     fn stmt(&mut self) -> Result<Stmt, String> {
-        let token = self.tokens.peek().ok_or_else(|| INVALID_END.to_string())?.clone();
+        let token = self
+            .tokens
+            .peek()
+            .ok_or_else(|| INVALID_END.to_string())?
+            .clone();
         match &token.t_type {
             TType::Fn => {
                 self.tokens.next();
                 match self.tokens.next().ok_or_else(|| INVALID_END.to_string())? {
-                    Token { t_type: TType::Identifier(identifier), .. } => {
-                        let params = iter::from_fn(||{
-                            match self.tokens.next_if(|tkn| matches!(tkn.t_type, TType::Identifier(_)))?.t_type {
+                    Token {
+                        t_type: TType::Identifier(identifier),
+                        ..
+                    } => {
+                        let params = iter::from_fn(|| {
+                            match self
+                                .tokens
+                                .next_if(|tkn| matches!(tkn.t_type, TType::Identifier(_)))?
+                                .t_type
+                            {
                                 TType::Identifier(param) => Some(param),
                                 _ => None,
                             }
-                        }).collect_vec().into_boxed_slice();
+                        })
+                        .collect_vec()
+                        .into_boxed_slice();
 
                         match self.tokens.next().ok_or(INVALID_END.to_string())?.t_type {
                             TType::FnArrow => (),
@@ -250,27 +280,33 @@ impl<'a,T> Parser<'a, T>
                         let body = FnBody { params, callee };
                         Ok(Stmt::FnDeclaration { identifier, body })
                     }
-                    token => Err(format!("{INVALID_TOKEN} {token:?}"))
+                    token => Err(format!("{INVALID_TOKEN} {token:?}")),
                 }
-            },
+            }
             _ => Ok(self.expression()?.into()),
         }
     }
 
     fn expression(&mut self) -> Result<Expr, String> {
         match self.tokens.peek() {
-            Some(Token { t_type: TType::Identifier(func_identifier), .. })
-            if self.funcs.contains_key(func_identifier) => {
+            Some(Token {
+                t_type: TType::Identifier(func_identifier),
+                ..
+            }) if self.funcs.contains_key(func_identifier) => {
                 let func_identifier = func_identifier.clone();
                 self.tokens.next();
                 let func = self.funcs.get(&func_identifier).unwrap();
-                let args: Vec<_> = func.params
+                let args: Vec<_> = func
+                    .params
                     .iter()
                     .map(|param| self.expression())
                     .try_collect()?;
 
-                Ok(Expr::Fn {identifier: func_identifier, args: args.into_boxed_slice()})
-            },
+                Ok(Expr::Fn {
+                    identifier: func_identifier,
+                    args: args.into_boxed_slice(),
+                })
+            }
             _ => self.assignment(),
         }
     }
@@ -280,16 +316,20 @@ impl<'a,T> Parser<'a, T>
         let mut expr_stack = vec![left_expr];
         loop {
             match self.tokens.peek() {
-                Some(&Token { t_type: TType::Op(ch @ '='), .. }) => {
+                Some(&Token {
+                    t_type: TType::Op(ch @ '='),
+                    ..
+                }) => {
                     self.tokens.next();
                     expr_stack.push(self.term()?);
-                },
-                _ => break expr_stack.into_iter().rev().reduce(|right, left| {
-                    Expr::Binary(
-                        Box::new(left),
-                        '=',
-                        Box::new(right))
-                    }).ok_or_else(|| "".to_string()),
+                }
+                _ => {
+                    break expr_stack
+                        .into_iter()
+                        .rev()
+                        .reduce(|right, left| Expr::Binary(Box::new(left), '=', Box::new(right)))
+                        .ok_or_else(|| "".to_string())
+                }
             }
         }
     }
@@ -298,12 +338,15 @@ impl<'a,T> Parser<'a, T>
         let mut left_expr = self.factor()?;
         loop {
             match self.tokens.peek() {
-                Some(&Token { t_type: TType::Op(ch @ ('+' | '-') ), .. }) => {
+                Some(&Token {
+                    t_type: TType::Op(ch @ ('+' | '-')),
+                    ..
+                }) => {
                     self.tokens.next();
                     let left = Box::new(left_expr);
                     let right = Box::new(self.factor()?);
                     left_expr = Expr::Binary(left, ch, right);
-                },
+                }
                 _ => break Ok(left_expr),
             }
         }
@@ -313,12 +356,15 @@ impl<'a,T> Parser<'a, T>
         let mut left_expr = self.unary()?;
         loop {
             match self.tokens.peek() {
-                Some(&Token { t_type: TType::Op(ch @ ('*' | '/' | '%')), .. }) => {
+                Some(&Token {
+                    t_type: TType::Op(ch @ ('*' | '/' | '%')),
+                    ..
+                }) => {
                     self.tokens.next();
                     let left = Box::new(left_expr);
                     let right = Box::new(self.unary()?);
                     left_expr = Expr::Binary(left, ch, right);
-                },
+                }
                 _ => break Ok(left_expr),
             }
         }
@@ -408,19 +454,22 @@ fn scan(input: &str) -> impl Iterator<Item=Token> + Clone + '_{
 }
 
 trait PeekingAhead: Iterator + Clone {
-
     /// Peeking multiple items of simple iterator by exploiting clone
-    fn peeking_ahead(&self, leap_size: usize) -> Option<Self::Item>{
+    fn peeking_ahead(&self, leap_size: usize) -> Option<Self::Item> {
         let mut peekable = self.clone();
         (0..leap_size).map(|_| peekable.next()).last().flatten()
     }
 }
 
 impl<I> PeekingAhead for Peekable<I>
-    where I: Iterator + Clone, Self::Item: Clone {}
+where
+    I: Iterator + Clone,
+    Self::Item: Clone,
+{
+}
 
 #[test]
-fn scan_test(){
+fn scan_test() {
     let test = "fn avg x y_1 =>    (x = y_1 + 123423434) / 2.343";
     let tokens = scan(test).map(|token| token.t_type);
     let expected_tokens = [
@@ -481,14 +530,14 @@ fn conflicts() {
 }
 
 #[test]
-fn chained_nested_assignments(){
+fn chained_nested_assignments() {
     let mut i = Interpreter::new();
     assert_eq!(i.input("x = y = 713"), Ok(Some(713.0)));
     assert_eq!(i.input("x = 29 + (y = 11)"), Ok(Some(40.0)));
 }
 
 #[test]
-fn nested_functions(){
+fn nested_functions() {
     let mut i = Interpreter::new();
     assert_eq!(i.input("fn f a b => a * b"), Ok(None));
     assert_eq!(i.input("fn g a b c => a * b * c"), Ok(None));
@@ -496,7 +545,7 @@ fn nested_functions(){
 }
 
 #[test]
-fn invalid_function_args(){
+fn invalid_function_args() {
     let mut i = Interpreter::new();
     assert!(i.input("fn add x x => x + x").is_err());
 

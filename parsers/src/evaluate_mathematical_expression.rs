@@ -1,7 +1,6 @@
 //NOTE: https://www.codewars.com/kata/52a78825cdfc2cfc87000005/train/rust
 
-#[macro_use]
-use std::borrow::{Borrow, Cow};
+use std::borrow::{Cow};
 use itertools::{Itertools, PeekingNext};
 use std::iter;
 use std::iter::Peekable;
@@ -22,7 +21,16 @@ enum TType {
     Num(f64),
 }
 
-// TODO: create EType and Expr (store tokens there
+/// expression     → term
+///
+/// term           → factor ( ( "-" | "+" ) factor )*
+///
+/// factor         → unary ( ( "/" | "*" ) unary )*
+///
+/// unary          → "-" unary | primary
+///
+/// primary        → "(" term ")" | number
+// TODO: create EType and Expr (store tokens there)
 #[derive(Debug, PartialEq, Clone)]
 enum Expr {
     Binary(Box<Expr>, TType, Box<Expr>),
@@ -32,11 +40,6 @@ enum Expr {
 }
 
 impl Expr {
-    // expression     → term ;
-    // term           → factor ( ( "-" | "+" ) factor )* ;
-    // factor         → unary ( ( "/" | "*" ) unary )* ;
-    // unary          → "-" unary | primary ;
-    // primary        → "(" term ")" | number;
     fn from(tokens: impl Iterator<Item = Token>) -> Result<Expr, Cow<'static, str>> {
         let mut peekable = tokens.peekable();
         let expr = term(&mut peekable);
@@ -46,7 +49,9 @@ impl Expr {
         };
 
         // TODO: replace with impl PeekingNext<Item = Token>
-        fn term(tokens: &mut Peekable<impl Iterator<Item = Token>>) -> Result<Expr, Cow<'static, str>> {
+        fn term(
+            tokens: &mut Peekable<impl Iterator<Item = Token>>,
+        ) -> Result<Expr, Cow<'static, str>> {
             next_if_space(tokens);
             let mut left_expr = factor(tokens)?;
             while let Some(token) =
@@ -60,7 +65,9 @@ impl Expr {
             Ok(left_expr)
         }
 
-        fn factor(tokens: &mut Peekable<impl Iterator<Item = Token>>) -> Result<Expr, Cow<'static, str>> {
+        fn factor(
+            tokens: &mut Peekable<impl Iterator<Item = Token>>,
+        ) -> Result<Expr, Cow<'static, str>> {
             next_if_space(tokens);
             let mut left_expr = unary(tokens)?;
             while let Some(token) =
@@ -74,7 +81,9 @@ impl Expr {
             Ok(left_expr)
         }
 
-        fn unary(tokens: &mut Peekable<impl Iterator<Item = Token>>) -> Result<Expr, Cow<'static, str>> {
+        fn unary(
+            tokens: &mut Peekable<impl Iterator<Item = Token>>,
+        ) -> Result<Expr, Cow<'static, str>> {
             let expr = match tokens.peek() {
                 None => Err("Invalid ending!".into()),
                 Some(&token) => match token.t_type {
@@ -90,7 +99,9 @@ impl Expr {
             expr
         }
 
-        fn primary(tokens: &mut Peekable<impl Iterator<Item=Token>>) -> Result<Expr, Cow<'static, str>> {
+        fn primary(
+            tokens: &mut Peekable<impl Iterator<Item = Token>>,
+        ) -> Result<Expr, Cow<'static, str>> {
             let token = tokens.next().ok_or("Invalid ending!")?;
             match token.t_type {
                 TType::Num(num) => Ok(Expr::Num(num)),
@@ -120,24 +131,24 @@ impl Expr {
                 '-' => left.eval() - right.eval(),
                 '/' => left.eval() / right.eval(),
                 '*' => left.eval() * right.eval(),
-                op => panic!("Invalid operation! op:{:?}", op),
+                op => panic!("Invalid operation! op:{op:?}"),
             },
             Expr::Unary(TType::Op('-'), expr) => -expr.eval(),
             Expr::Grouping(expr) => expr.eval(),
             Expr::Num(num) => *num,
-            _ => panic!("Invalid expression! expr:{:?}", self),
+            _ => panic!("Invalid expression! expr:{self:?}"),
         }
     }
 }
 
-fn calc(input_expr: &str) -> f64 {
+pub fn calc(input_expr: &str) -> f64 {
     let tokens = scan(input_expr);
     let expr = Expr::from(tokens).unwrap();
     expr.eval()
 }
 
 #[rustfmt::skip]
-fn scan(str: &str) -> impl Iterator<Item = Token> + '_{
+pub fn scan(str: &str) -> impl Iterator<Item = Token> + '_{
     str.chars().enumerate().peekable().batching(|iter| {
         match iter.next() {
             None => None,
@@ -149,7 +160,7 @@ fn scan(str: &str) -> impl Iterator<Item = Token> + '_{
                                 .peeking_take_while(|(_, ch)| ch.is_numeric() || *ch == '.')
                                 .map(|(_, ch)| ch))
                             .collect();
-                        let num = num_str.parse::<f64>().unwrap_or_else(|_| panic!("Invalid token! index:{0}", index));
+                        let num = num_str.parse::<f64>().unwrap_or_else(|_| panic!("Invalid token! index:{index}"));
                         Token { index, len: num_str.len(), t_type: TType::Num(num) }
                     },
                     '(' => Token { index, len: 1, t_type: TType::LeftParen },
@@ -163,7 +174,7 @@ fn scan(str: &str) -> impl Iterator<Item = Token> + '_{
                             .unwrap_or(index);
                         Token { index, len: 1 + last_index - index, t_type: TType::Space }
                     }
-                    _ => panic!("Invalid token! index:{0}", index),
+                    _ => panic!("Invalid token! index:{index}"),
                 };
                 Some(token)
             }
@@ -174,8 +185,7 @@ fn scan(str: &str) -> impl Iterator<Item = Token> + '_{
 #[deny(clippy::float_cmp)]
 #[cfg(test)]
 mod tests {
-    use super::calc;
-    use crate::interpreters::evaluate_mathematical_expression::{scan, TType, Token};
+    use super::{calc, scan, TType, Token};
 
     #[test]
     fn scan_test() {

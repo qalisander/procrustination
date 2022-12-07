@@ -245,8 +245,8 @@ impl Compiler {
 
 #[cfg(test)]
 mod tests {
+    use super::Ast::*;
     use super::*;
-    use crate::interpreters::three_pass_compiler::Ast::{BinOp, UnOp};
 
     #[test]
     fn pass1_map_to_expression() {
@@ -296,8 +296,8 @@ mod tests {
         let args = vec![1, 0];
         let expected_ans = 55;
         let expected_asm = [
-            "IM 5", "SW", "AR 1", "SW", "AD", "PU", "IM 10",
-            "SW", "AR 0", "SW", "AD", "SW", "PO", "MU",
+            "IM 5", "SW", "AR 1", "SW", "AD", "PU", "IM 10", "SW", "AR 0", "SW", "AD", "SW", "PO",
+            "MU",
         ]
         .map(|str| str.to_string())
         .to_vec();
