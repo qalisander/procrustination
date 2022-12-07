@@ -21,6 +21,9 @@ enum TType {
     Num(f64),
 }
 
+
+/// Syntax
+/// 
 /// expression     → term
 ///
 /// term           → factor ( ( "-" | "+" ) factor )*

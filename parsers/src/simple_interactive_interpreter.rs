@@ -225,17 +225,19 @@ where
         }
     }
 
-    ///  statement      → "fn" fn_identifier "=>" expression | (identifier "=")? expression
+    /// Syntax
+    /// 
+    /// statement      → "fn" fn_identifier "=>" expression | (identifier "=")? expression
     ///
-    ///  expression     → term | fn_identifier (expression)*
+    /// expression     → term | fn_identifier (expression)*
     ///
-    ///  term           → factor ( ( "-" | "+" ) factor )*
+    /// term           → factor ( ( "-" | "+" ) factor )*
     ///
-    ///  factor         → unary ( ( "/" | "*" ) unary )*
+    /// factor         → unary ( ( "/" | "*" ) unary )*
     ///
-    ///  unary          → "-" unary | primary
+    /// unary          → "-" unary | primary
     ///
-    ///  primary        → "(" expression ")" | identifier | number
+    /// primary        → "(" expression ")" | identifier | number
     fn parse(&mut self) -> Result<Stmt, String> {
         let expr = self.stmt();
         return match self.tokens.next() {

@@ -38,11 +38,16 @@ where
     }
 
     /// Syntax
-    /// - function   ::= '[' arg-list ']' expression
-    /// - arg-list   ::= variable*
-    /// - expression ::= term ( '+' | '-' term )*
-    /// - term       ::= factor ( '*' | '/' factor )*
-    /// - factor     ::= number | variable | '(' expression ')'
+    /// 
+    /// function   ::= '[' arg-list ']' expression
+    /// 
+    /// arg-list   ::= variable*
+    /// 
+    /// expression ::= term ( '+' | '-' term )*
+    /// 
+    /// term       ::= factor ( '*' | '/' factor )*
+    /// 
+    /// factor     ::= number | variable | '(' expression ')'
     pub fn parse(&mut self) -> Ast {
         self.tokens.next_if_eq("[").expect("Invalid arg-list!");
         for index_of_arg in 0.. {
