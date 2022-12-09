@@ -152,6 +152,7 @@ pub fn calc(input_expr: &str) -> f64 {
 
 #[rustfmt::skip]
 pub fn scan(str: &str) -> impl Iterator<Item = Token> + '_{
+    // BUG chars indices
     str.chars().enumerate().peekable().batching(|iter| {
         match iter.next() {
             None => None,
