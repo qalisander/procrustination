@@ -1,27 +1,242 @@
+use itertools::Itertools;
+
 //https://www.codewars.com/kata/58e61f3d8ff24f774400002c/train/rust
-pub struct AssemblerInterpreter {}
+
+// TODO: use InstrType enum
+// TODO: replace string with &str and reference to orginal string
+enum Instr {
+    Mov(Reg, Val), // mov x, y - copy y (either an integer or the value of a register) into register x.
+    Inc(Reg),      // inc x - increase the content of register x by one.
+    Dec(Reg),      // dec x - decrease the content of register x by one.
+    Add(Reg, Val), // add x, y - add the content of the register x with y (either an integer or the value of a register) and stores the result in x (i.e. register[x] += y).
+    Sub(Reg, Val), // sub x, y - subtract y (either an integer or the value of a register) from the register x and stores the result in x (i.e. register[x] -= y).
+    Mul(Reg, Val), // mul x, y - same with multiply (i.e. register[x] *= y).
+    Div(Reg, Val), // div x, y - same with integer division (i.e. register[x] /= y).
+    Label(Lbl), // label: - define a label position (label = identifier + ":", an identifier being a string that does not match any other command). Jump commands and call are aimed to these labels positions in the program.
+    Jmp(Lbl),   // jmp lbl - jumps to the label lbl.
+    Cmp(Val, Val), // cmp x, y - compares x (either an integer or the value of a register) and y (either an integer or the value of a register). The result is used in the conditional jumps (jne, je, jge, jg, jle and jl)
+    Jne(Lbl), // jne lbl - jump to the label lbl if the values of the previous cmp command were not equal.
+    Je(Lbl), // je lbl - jump to the label lbl if the values of the previous cmp command were equal.
+    Jge(Lbl), // jge lbl - jump to the label lbl if x was greater or equal than y in the previous cmp command.
+    Jg(Lbl),  // jg lbl - jump to the label lbl if x was greater than y in the previous cmp command.
+    Jle(Lbl), // jle lbl - jump to the label lbl if x was less or equal than y in the previous cmp command.
+    Jl(Lbl),  // jl lbl - jump to the label lbl if x was less than y in the previous cmp command.
+    Call(Lbl), // call lbl - call to the subroutine identified by lbl. When a ret is found in a subroutine, the instruction pointer should return to the instruction next to this call command.
+    Ret, // ret - when a ret is found in a subroutine, the instruction pointer should return to the instruction that called the current function.
+    Msg(Vec<MsgArg>), // msg 'Register: ', x - this instruction stores the output of the program. It may contain text strings (delimited by single quotes) and registers. The number of arguments isn't limited and will vary, depending on the program.
+    End, // end - this instruction indicates that the program ends correctly, so the stored output is returned (if the program terminates without this instruction it should return the default output: see below).
+}
+enum MsgArg {
+    Reg(Reg),
+    Str(String),
+}
+struct Lbl(String);
+struct Reg(String);
+
+enum Val {
+    Reg(Reg),
+    Val(i32),
+}
+
+pub struct AssemblerInterpreter {
+    instructions: Vec<Instr>,
+    
+}
 
 impl AssemblerInterpreter {
     pub fn interpret(input: &str) -> Option<String> {
-        unimplemented!();
+        // NOTE: Parse all this lines. Because we have to know functions in advance
+        let instructions = Self::parse(input);
+        
+        let interpreter = AssemblerInterpreter { instructions };
+        
+        interpreter.interpret_instr()
+    }
+
+    fn interpret_instr(&self) -> Option<String> {
+        unimplemented!()
+    }
+
+    fn parse(input: &str) -> Vec<Instr> {
+        input.lines().map(Self::parse_line).collect_vec()
+    }
+
+    fn parse_line(line: &str) -> Instr {
+        unimplemented!()
     }
 }
 
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use std::collections::HashSet;
 
     #[test]
     fn simple_test() {
         let simple_programs = &[
-            "\n; My first program\nmov  a, 5\ninc  a\ncall function\nmsg  '(5+1)/2 = ', a    ; output message\nend\n\nfunction:\n    div  a, 2\n    ret\n",
-            "\nmov   a, 5\nmov   b, a\nmov   c, a\ncall  proc_fact\ncall  print\nend\n\nproc_fact:\n    dec   b\n    mul   c, b\n    cmp   b, 1\n    jne   proc_fact\n    ret\n\nprint:\n    msg   a, '! = ', c ; output text\n    ret\n",
-            "\nmov   a, 8            ; value\nmov   b, 0            ; next\nmov   c, 0            ; counter\nmov   d, 0            ; first\nmov   e, 1            ; second\ncall  proc_fib\ncall  print\nend\n\nproc_fib:\n    cmp   c, 2\n    jl    func_0\n    mov   b, d\n    add   b, e\n    mov   d, e\n    mov   e, b\n    inc   c\n    cmp   c, a\n    jle   proc_fib\n    ret\n\nfunc_0:\n    mov   b, c\n    inc   c\n    jmp   proc_fib\n\nprint:\n    msg   'Term ', a, ' of Fibonacci series is: ', b        ; output text\n    ret\n",
-            "\nmov   a, 11           ; value1\nmov   b, 3            ; value2\ncall  mod_func\nmsg   'mod(', a, ', ', b, ') = ', d        ; output\nend\n\n; Mod function\nmod_func:\n    mov   c, a        ; temp1\n    div   c, b\n    mul   c, b\n    mov   d, a        ; temp2\n    sub   d, c\n    ret\n",
-            "\nmov   a, 81         ; value1\nmov   b, 153        ; value2\ncall  init\ncall  proc_gcd\ncall  print\nend\n\nproc_gcd:\n    cmp   c, d\n    jne   loop\n    ret\n\nloop:\n    cmp   c, d\n    jg    a_bigger\n    jmp   b_bigger\n\na_bigger:\n    sub   c, d\n    jmp   proc_gcd\n\nb_bigger:\n    sub   d, c\n    jmp   proc_gcd\n\ninit:\n    cmp   a, 0\n    jl    a_abs\n    cmp   b, 0\n    jl    b_abs\n    mov   c, a            ; temp1\n    mov   d, b            ; temp2\n    ret\n\na_abs:\n    mul   a, -1\n    jmp   init\n\nb_abs:\n    mul   b, -1\n    jmp   init\n\nprint:\n    msg   'gcd(', a, ', ', b, ') = ', c\n    ret\n",
-            "\ncall  func1\ncall  print\nend\n\nfunc1:\n    call  func2\n    ret\n\nfunc2:\n    ret\n\nprint:\n    msg 'This program should return null'\n",
-            "\nmov   a, 2            ; value1\nmov   b, 10           ; value2\nmov   c, a            ; temp1\nmov   d, b            ; temp2\ncall  proc_func\ncall  print\nend\n\nproc_func:\n    cmp   d, 1\n    je    continue\n    mul   c, a\n    dec   d\n    call  proc_func\n\ncontinue:\n    ret\n\nprint:\n    msg a, '^', b, ' = ', c\n    ret\n"];
+            r"
+; My first program
+mov  a, 5
+inc  a
+call function
+msg  '(5+1)/2 = ', a    ; output message
+end
+
+function:
+    div  a, 2
+    ret
+",
+            r"
+mov   a, 5
+mov   b, a
+mov   c, a
+call  proc_fact
+call  print
+end
+
+proc_fact:
+    dec   b
+    mul   c, b
+    cmp   b, 1
+    jne   proc_fact
+    ret
+
+print:
+    msg   a, '! = ', c ; output text
+    ret
+",
+            r"
+mov   a, 8            ; value
+mov   b, 0            ; next
+mov   c, 0            ; counter
+mov   d, 0            ; first
+mov   e, 1            ; second
+call  proc_fib
+call  print
+end
+
+proc_fib:
+    cmp   c, 2
+    jl    func_0
+    mov   b, d
+    add   b, e
+    mov   d, e
+    mov   e, b
+    inc   c
+    cmp   c, a
+    jle   proc_fib
+    ret
+
+func_0:
+    mov   b, c
+    inc   c
+    jmp   proc_fib
+
+print:
+    msg   'Term ', a, ' of Fibonacci series is: ', b        ; output text
+    ret
+",
+            r"
+mov   a, 11           ; value1
+mov   b, 3            ; value2
+call  mod_func
+msg   'mod(', a, ', ', b, ') = ', d        ; output
+end
+
+; Mod function
+mod_func:
+    mov   c, a        ; temp1
+    div   c, b
+    mul   c, b
+    mov   d, a        ; temp2
+    sub   d, c
+    ret
+",
+            r"
+mov   a, 81         ; value1
+mov   b, 153        ; value2
+call  init
+call  proc_gcd
+call  print
+end
+
+proc_gcd:
+    cmp   c, d
+    jne   loop
+    ret
+
+loop:
+    cmp   c, d
+    jg    a_bigger
+    jmp   b_bigger
+
+a_bigger:
+    sub   c, d
+    jmp   proc_gcd
+
+b_bigger:
+    sub   d, c
+    jmp   proc_gcd
+
+init:
+    cmp   a, 0
+    jl    a_abs
+    cmp   b, 0
+    jl    b_abs
+    mov   c, a            ; temp1
+    mov   d, b            ; temp2
+    ret
+
+a_abs:
+    mul   a, -1
+    jmp   init
+
+b_abs:
+    mul   b, -1
+    jmp   init
+
+print:
+    msg   'gcd(', a, ', ', b, ') = ', c
+    ret
+",
+            r"
+call  func1
+call  print
+end
+
+func1:
+    call  func2
+    ret
+
+func2:
+    ret
+
+print:
+    msg 'This program should return null'
+",
+            r"
+mov   a, 2            ; value1
+mov   b, 10           ; value2
+mov   c, a            ; temp1
+mov   d, b            ; temp2
+call  proc_func
+call  print
+end
+
+proc_func:
+    cmp   d, 1
+    je    continue
+    mul   c, a
+    dec   d
+    call  proc_func
+
+continue:
+    ret
+
+print:
+    msg a, '^', b, ' = ', c
+    ret
+",
+        ];
 
         let expected = &[
             Some(String::from("(5+1)/2 = 3")),
