@@ -1,32 +1,51 @@
-//use crate::assembler_interpreter::Instr::{Call, Declr, Div, End, Inc, Lbl, Mov, Msg};
 use itertools::Itertools;
 
 //https://www.codewars.com/kata/58e61f3d8ff24f774400002c/train/rust
 
 // TODO: use InstrType enum
-// TODO: replace string with &str and reference to orginal string
+// TODO: replace string with &str and reference to original string
 #[derive(Debug, PartialEq)]
 enum Instr {
-    Mov(Reg, Val), // mov x, y - copy y (either an integer or the value of a register) into register x.
-    Inc(Reg),      // inc x - increase the content of register x by one.
-    Dec(Reg),      // dec x - decrease the content of register x by one.
-    Add(Reg, Val), // add x, y - add the content of the register x with y (either an integer or the value of a register) and stores the result in x (i.e. register[x] += y).
-    Sub(Reg, Val), // sub x, y - subtract y (either an integer or the value of a register) from the register x and stores the result in x (i.e. register[x] -= y).
-    Mul(Reg, Val), // mul x, y - same with multiply (i.e. register[x] *= y).
-    Div(Reg, Val), // div x, y - same with integer division (i.e. register[x] /= y).
-    Lbl(Lbl), // label: - define a label position (label = identifier + ":", an identifier being a string that does not match any other command). Jump commands and call are aimed to these labels positions in the program.
-    Jmp(Lbl), // jmp lbl - jumps to the label lbl.
-    Cmp(Val, Val), // cmp x, y - compares x (either an integer or the value of a register) and y (either an integer or the value of a register). The result is used in the conditional jumps (jne, je, jge, jg, jle and jl)
-    Jne(Lbl), // jne lbl - jump to the label lbl if the values of the previous cmp command were not equal.
-    Je(Lbl), // je lbl - jump to the label lbl if the values of the previous cmp command were equal.
-    Jge(Lbl), // jge lbl - jump to the label lbl if x was greater or equal than y in the previous cmp command.
-    Jg(Lbl),  // jg lbl - jump to the label lbl if x was greater than y in the previous cmp command.
-    Jle(Lbl), // jle lbl - jump to the label lbl if x was less or equal than y in the previous cmp command.
-    Jl(Lbl),  // jl lbl - jump to the label lbl if x was less than y in the previous cmp command.
-    Call(Lbl), // call lbl - call to the subroutine identified by lbl. When a ret is found in a subroutine, the instruction pointer should return to the instruction next to this call command.
-    Ret, // ret - when a ret is found in a subroutine, the instruction pointer should return to the instruction that called the current function.
-    Msg(Vec<MsgArg>), // msg 'Register: ', x - this instruction stores the output of the program. It may contain text strings (delimited by single quotes) and registers. The number of arguments isn't limited and will vary, depending on the program.
-    End, // end - this instruction indicates that the program ends correctly, so the stored output is returned (if the program terminates without this instruction it should return the default output: see below).
+    // mov x, y - copy y (either an integer or the value of a register) into register x.
+    Mov(Reg, Val),
+    // inc x - increase the content of register x by one.
+    Inc(Reg),
+    // dec x - decrease the content of register x by one.
+    Dec(Reg),
+    // add x, y - add the content of the register x with y (either an integer or the value of a register) and stores the result in x (i.e. register[x] += y).
+    Add(Reg, Val),
+    // sub x, y - subtract y (either an integer or the value of a register) from the register x and stores the result in x (i.e. register[x] -= y).
+    Sub(Reg, Val),
+    // mul x, y - same with multiply (i.e. register[x] *= y).
+    Mul(Reg, Val),
+    // div x, y - same with integer division (i.e. register[x] /= y).
+    Div(Reg, Val),
+    // label: - define a label position (label = identifier + ":", an identifier being a string that does not match any other command). Jump commands and call are aimed to these labels positions in the program.
+    Lbl(Lbl),
+    // jmp lbl - jumps to the label lbl.
+    Jmp(Lbl),
+    // cmp x, y - compares x (either an integer or the value of a register) and y (either an integer or the value of a register). The result is used in the conditional jumps (jne, je, jge, jg, jle and jl)
+    Cmp(Val, Val),
+    // jne lbl - jump to the label lbl if the values of the previous cmp command were not equal.
+    Jne(Lbl),
+    // je lbl - jump to the label lbl if the values of the previous cmp command were equal.
+    Je(Lbl),
+    // jge lbl - jump to the label lbl if x was greater or equal than y in the previous cmp command.
+    Jge(Lbl),
+    // jg lbl - jump to the label lbl if x was greater than y in the previous cmp command.
+    Jg(Lbl),
+    // jle lbl - jump to the label lbl if x was less or equal than y in the previous cmp command.
+    Jle(Lbl),
+    // jl lbl - jump to the label lbl if x was less than y in the previous cmp command.
+    Jl(Lbl),
+    // call lbl - call to the subroutine identified by lbl. When a ret is found in a subroutine, the instruction pointer should return to the instruction next to this call command.
+    Call(Lbl),
+    // ret - when a ret is found in a subroutine, the instruction pointer should return to the instruction that called the current function.
+    Ret,
+    // msg 'Register: ', x - this instruction stores the output of the program. It may contain text strings (delimited by single quotes) and registers. The number of arguments isn't limited and will vary, depending on the program.
+    Msg(Vec<MsgArg>),
+    // end - this instruction indicates that the program ends correctly, so the stored output is returned (if the program terminates without this instruction it should return the default output: see below).
+    End,
 }
 
 #[derive(Debug, PartialEq)]
@@ -67,11 +86,40 @@ impl AssemblerInterpreter {
 
     // TODO: Add err output
     fn scan(input: &str) -> Vec<Instr> {
-        input.lines().map(Self::scan_line).collect_vec()
+        input.lines().filter_map(Self::scan_line).collect_vec()
     }
 
-    fn scan_line(line: &str) -> Instr {
-        unimplemented!()
+    // TODO: Add err output
+    fn scan_line(line: &str) -> Option<Instr> {
+        let mut tokens = line.split_whitespace();
+        match tokens.next()? {
+            "mov" => {
+                unimplemented!()
+            }
+            "inc" => {unimplemented!()},
+            "dec" => {unimplemented!()},
+            "add" => {unimplemented!()},
+            "sub" => {unimplemented!()},
+            "mul" => {unimplemented!()},
+            "div" => {unimplemented!()},
+            "jmp" => {unimplemented!()},
+            "cmp" => {unimplemented!()},
+            "jne" => {unimplemented!()},
+            "je" => {unimplemented!()},
+            "jge" => {unimplemented!()},
+            "jg" => {unimplemented!()},
+            "jle" => {unimplemented!()},
+            "jl" => {unimplemented!()},
+            "call" => {unimplemented!()},
+            "ret" => {unimplemented!()},
+            label =>{
+                if let Some(label) = label.strip_suffix(":") {
+                    Some(Instr::Lbl(Lbl(label.to_string())))
+                } else { 
+                    None
+                }
+            }
+        }
     }
 }
 
