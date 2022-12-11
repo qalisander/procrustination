@@ -1,4 +1,7 @@
+use crate::assembler_interpreter::AsmErr::InvalidInstr;
 use itertools::Itertools;
+use std::fmt::{Debug, Display};
+use thiserror::Error;
 
 //https://www.codewars.com/kata/58e61f3d8ff24f774400002c/train/rust
 
@@ -70,56 +73,112 @@ pub struct AssemblerInterpreter {
     instructions: Vec<Instr>,
 }
 
+#[derive(Error, Debug, PartialEq)]
+pub enum AsmErr {
+    #[error("Invalid instruction!")]
+    InvalidInstr,
+}
+
 impl AssemblerInterpreter {
     pub fn interpret(input: &str) -> Option<String> {
         // NOTE: Parse all this lines. Because we have to know functions in advance
-        let instructions = Self::scan(input);
+        let instructions: Vec<Instr> = Self::scan(input)
+            .into_iter()
+            .try_collect()
+            .expect("Error while scanning!");
 
         let interpreter = AssemblerInterpreter { instructions };
 
-        interpreter.interpret_instr()
+        interpreter
+            .interpret_instr()
+            .expect("Error while interpreting instructions!")
     }
 
-    fn interpret_instr(&self) -> Option<String> {
+    fn interpret_instr(&self) -> Result<Option<String>, AsmErr> {
         unimplemented!()
     }
 
-    // TODO: Add err output
-    fn scan(input: &str) -> Vec<Instr> {
-        input.lines().filter_map(Self::scan_line).collect_vec()
+    fn scan(input: &str) -> Vec<Result<Instr, AsmErr>> {
+        input
+            .lines()
+            .map(Self::scan_line)
+            .filter_map_ok(|instr| instr)
+            .collect_vec()
     }
 
     // TODO: Add err output
-    fn scan_line(line: &str) -> Option<Instr> {
+    fn scan_line(line: &str) -> Result<Option<Instr>, AsmErr> {
         let mut tokens = line.split_whitespace();
-        match tokens.next()? {
-            "mov" => {
-                unimplemented!()
-            }
-            "inc" => {unimplemented!()},
-            "dec" => {unimplemented!()},
-            "add" => {unimplemented!()},
-            "sub" => {unimplemented!()},
-            "mul" => {unimplemented!()},
-            "div" => {unimplemented!()},
-            "jmp" => {unimplemented!()},
-            "cmp" => {unimplemented!()},
-            "jne" => {unimplemented!()},
-            "je" => {unimplemented!()},
-            "jge" => {unimplemented!()},
-            "jg" => {unimplemented!()},
-            "jle" => {unimplemented!()},
-            "jl" => {unimplemented!()},
-            "call" => {unimplemented!()},
-            "ret" => {unimplemented!()},
-            label =>{
-                if let Some(label) = label.strip_suffix(":") {
-                    Some(Instr::Lbl(Lbl(label.to_string())))
-                } else { 
-                    None
+        let instr = match tokens.next() {
+            None => return Ok(None),
+            Some(token) => match token {
+                "mov" => {
+                    unimplemented!()
                 }
-            }
-        }
+                "inc" => {
+                    unimplemented!()
+                }
+                "dec" => {
+                    unimplemented!()
+                }
+                "add" => {
+                    unimplemented!()
+                }
+                "sub" => {
+                    unimplemented!()
+                }
+                "mul" => {
+                    unimplemented!()
+                }
+                "div" => {
+                    unimplemented!()
+                }
+                "jmp" => {
+                    unimplemented!()
+                }
+                "cmp" => {
+                    unimplemented!()
+                }
+                "jne" => {
+                    unimplemented!()
+                }
+                "je" => {
+                    unimplemented!()
+                }
+                "jge" => {
+                    unimplemented!()
+                }
+                "jg" => {
+                    unimplemented!()
+                }
+                "jle" => {
+                    unimplemented!()
+                }
+                "jl" => {
+                    unimplemented!()
+                }
+                "call" => {
+                    unimplemented!()
+                }
+                "ret" => {
+                    unimplemented!()
+                }
+                "msg" => {
+                    unimplemented!()
+                }
+                "end" => {
+                    unimplemented!()
+                }
+                label => {
+                    if let Some(label) = label.strip_suffix(":") {
+                        Some(Instr::Lbl(Lbl(label.to_string())))
+                    } else {
+                        return Err(InvalidInstr);
+                    }
+                }
+            },
+        };
+        Ok(instr)
     }
 }
 
@@ -136,7 +195,7 @@ function:
     div  a, 2
     ret
 ";
-    let expected_instructions = vec![
+    let expected_instructions = [
         Instr::Mov(Reg("a".to_string()), Val::Num(5)),
         Instr::Inc(Reg("a".to_string())),
         Instr::Call(Lbl("function".to_string())),
@@ -148,7 +207,8 @@ function:
         Instr::Lbl(Lbl("function".to_string())),
         Instr::Div(Reg("a".to_string()), Val::Num(2)),
         Instr::Ret,
-    ];
+    ]
+    .map(|i| Ok(i));
     let instructions = AssemblerInterpreter::scan(input);
     itertools::assert_equal(instructions, expected_instructions)
 }
