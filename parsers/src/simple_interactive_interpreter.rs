@@ -11,14 +11,14 @@ use std::ops::Deref;
 // TODO: add benchmarks
 
 #[derive(Clone, Debug)]
-struct Token {
+struct TokenInfo {
     index: usize,
     len: usize,
-    t_type: TType,
+    t_type: Token,
 }
 
 #[derive(Clone, Debug, PartialEq)]
-enum TType {
+enum Token {
     Op(char),
     FnArrow,
     LeftParen,
@@ -208,7 +208,7 @@ impl Interpreter {
 
 struct Parser<'a, T>
 where
-    T: Iterator<Item = Token> + Clone,
+    T: Iterator<Item = TokenInfo> + Clone,
 {
     tokens: Peekable<T>,
     funcs: &'a HashMap<String, FnBody>,
@@ -216,7 +216,7 @@ where
 
 impl<'a, T> Parser<'a, T>
 where
-    T: Iterator<Item = Token> + Clone,
+    T: Iterator<Item = TokenInfo> + Clone,
 {
     fn new(tokens: T, funcs: &'a HashMap<String, FnBody>) -> Self {
         Parser {
@@ -226,7 +226,7 @@ where
     }
 
     /// Syntax
-    /// 
+    ///
     /// statement      → "fn" fn_identifier "=>" expression | (identifier "=")? expression
     ///
     /// expression     → term | fn_identifier (expression)*
@@ -253,20 +253,20 @@ where
             .ok_or_else(|| INVALID_END.to_string())?
             .clone();
         match &token.t_type {
-            TType::Fn => {
+            Token::Fn => {
                 self.tokens.next();
                 match self.tokens.next().ok_or_else(|| INVALID_END.to_string())? {
-                    Token {
-                        t_type: TType::Identifier(identifier),
+                    TokenInfo {
+                        t_type: Token::Identifier(identifier),
                         ..
                     } => {
                         let params = iter::from_fn(|| {
                             match self
                                 .tokens
-                                .next_if(|tkn| matches!(tkn.t_type, TType::Identifier(_)))?
+                                .next_if(|tkn| matches!(tkn.t_type, Token::Identifier(_)))?
                                 .t_type
                             {
-                                TType::Identifier(param) => Some(param),
+                                Token::Identifier(param) => Some(param),
                                 _ => None,
                             }
                         })
@@ -274,7 +274,7 @@ where
                         .into_boxed_slice();
 
                         match self.tokens.next().ok_or(INVALID_END.to_string())?.t_type {
-                            TType::FnArrow => (),
+                            Token::FnArrow => (),
                             token => return Err(format!("{INVALID_TOKEN} {token:?}")),
                         };
 
@@ -291,8 +291,8 @@ where
 
     fn expression(&mut self) -> Result<Expr, String> {
         match self.tokens.peek() {
-            Some(Token {
-                t_type: TType::Identifier(func_identifier),
+            Some(TokenInfo {
+                t_type: Token::Identifier(func_identifier),
                 ..
             }) if self.funcs.contains_key(func_identifier) => {
                 let func_identifier = func_identifier.clone();
@@ -318,8 +318,8 @@ where
         let mut expr_stack = vec![left_expr];
         loop {
             match self.tokens.peek() {
-                Some(&Token {
-                    t_type: TType::Op(ch @ '='),
+                Some(&TokenInfo {
+                    t_type: Token::Op(ch @ '='),
                     ..
                 }) => {
                     self.tokens.next();
@@ -340,8 +340,8 @@ where
         let mut left_expr = self.factor()?;
         loop {
             match self.tokens.peek() {
-                Some(&Token {
-                    t_type: TType::Op(ch @ ('+' | '-')),
+                Some(&TokenInfo {
+                    t_type: Token::Op(ch @ ('+' | '-')),
                     ..
                 }) => {
                     self.tokens.next();
@@ -358,8 +358,8 @@ where
         let mut left_expr = self.unary()?;
         loop {
             match self.tokens.peek() {
-                Some(&Token {
-                    t_type: TType::Op(ch @ ('*' | '/' | '%')),
+                Some(&TokenInfo {
+                    t_type: Token::Op(ch @ ('*' | '/' | '%')),
                     ..
                 }) => {
                     self.tokens.next();
@@ -375,7 +375,7 @@ where
     fn unary(&mut self) -> Result<Expr, String> {
         let token = self.tokens.peek().ok_or_else(|| INVALID_END.to_string())?;
         match token.t_type {
-            TType::Op(ch @ '-') => {
+            Token::Op(ch @ '-') => {
                 self.tokens.next();
                 let expr = Box::new(self.unary()?);
                 Ok(Expr::Unary(ch, expr))
@@ -387,13 +387,13 @@ where
     fn primary(&mut self) -> Result<Expr, String> {
         let token = self.tokens.next().ok_or_else(|| INVALID_END.to_string())?;
         match token.t_type {
-            TType::Num(num) => Ok(Expr::Num(num)),
-            TType::Identifier(var) => Ok(Expr::Var(var)),
-            TType::LeftParen => {
+            Token::Num(num) => Ok(Expr::Num(num)),
+            Token::Identifier(var) => Ok(Expr::Var(var)),
+            Token::LeftParen => {
                 let expr = self.expression()?;
                 match self.tokens.next() {
                     Some(token) => match token.t_type {
-                        TType::RightParen => Ok(Expr::Grouping(Box::new(expr))),
+                        Token::RightParen => Ok(Expr::Grouping(Box::new(expr))),
                         _ => Err(format!("{0} index:{1}", INVALID_PAREN, token.index)),
                     },
                     None => Err(INVALID_PAREN.to_string()),
@@ -405,7 +405,7 @@ where
 }
 
 #[rustfmt::skip]
-fn scan(input: &str) -> impl Iterator<Item=Token> + Clone + '_{
+fn scan(input: &str) -> impl Iterator<Item=TokenInfo> + Clone + '_{
     input.char_indices().peekable().batching(move |iter|{
         iter.peeking_take_while(|(_, ch)| ch.is_whitespace()).for_each(|_|());
         match iter.next() {
@@ -426,14 +426,14 @@ fn scan(input: &str) -> impl Iterator<Item=Token> + Clone + '_{
                         let num = input[index..=last_index].parse::<f32>()
                             .unwrap_or_else(|_| panic!("{0} index:{1}", INVALID_TOKEN, index));
 
-                        Token { index, len, t_type: TType::Num(num) }
+                        TokenInfo { index, len, t_type: Token::Num(num) }
                     },
-                    '(' => Token { index, len: 1, t_type: TType::LeftParen },
-                    ')' => Token { index, len: 1, t_type: TType::RightParen },
-                    '+' | '-' | '/' | '*' | '%' => Token { index, len: 1, t_type: TType::Op(ch) },
+                    '(' => TokenInfo { index, len: 1, t_type: Token::LeftParen },
+                    ')' => TokenInfo { index, len: 1, t_type: Token::RightParen },
+                    '+' | '-' | '/' | '*' | '%' => TokenInfo { index, len: 1, t_type: Token::Op(ch) },
                     '=' => match iter.next_if(|(_, ch)| *ch == '>') {
-                        None => Token { index, len: 1, t_type: TType::Op('=') },
-                        Some(_) => Token { index, len: 2, t_type: TType::FnArrow }
+                        None => TokenInfo { index, len: 1, t_type: Token::Op('=') },
+                        Some(_) => TokenInfo { index, len: 2, t_type: Token::FnArrow }
                     },
                     'a'..='z' | 'A'..='Z' | '_' => {
                         let last_index = last_index_when(|ch|
@@ -441,11 +441,11 @@ fn scan(input: &str) -> impl Iterator<Item=Token> + Clone + '_{
 
                         let len = 1 + last_index - index;
                         let t_type =  match &input[index..=last_index] {
-                            "fn" => TType::Fn,
-                            ch => TType::Identifier(ch.to_string()),
+                            "fn" => Token::Fn,
+                            ch => Token::Identifier(ch.to_string()),
                         };
 
-                        Token {index, len, t_type}
+                        TokenInfo {index, len, t_type}
                     },
                     _ => panic!("{INVALID_TOKEN} index:{index}, char:{ch}"), // TODO: Use errors
                 };
@@ -475,20 +475,20 @@ fn scan_test() {
     let test = "fn avg x y_1 =>    (x = y_1 + 123423434) / 2.343";
     let tokens = scan(test).map(|token| token.t_type);
     let expected_tokens = [
-        TType::Fn,
-        TType::Identifier("avg".to_string()),
-        TType::Identifier("x".to_string()),
-        TType::Identifier("y_1".to_string()),
-        TType::FnArrow,
-        TType::LeftParen,
-        TType::Identifier("x".to_string()),
-        TType::Op('='),
-        TType::Identifier("y_1".to_string()),
-        TType::Op('+'),
-        TType::Num(123423434.0),
-        TType::RightParen,
-        TType::Op('/'),
-        TType::Num(2.343),
+        Token::Fn,
+        Token::Identifier("avg".to_string()),
+        Token::Identifier("x".to_string()),
+        Token::Identifier("y_1".to_string()),
+        Token::FnArrow,
+        Token::LeftParen,
+        Token::Identifier("x".to_string()),
+        Token::Op('='),
+        Token::Identifier("y_1".to_string()),
+        Token::Op('+'),
+        Token::Num(123423434.0),
+        Token::RightParen,
+        Token::Op('/'),
+        Token::Num(2.343),
     ];
 
     itertools::assert_equal(tokens, expected_tokens);
