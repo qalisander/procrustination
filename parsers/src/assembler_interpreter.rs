@@ -1,9 +1,12 @@
-use crate::assembler_interpreter::AsmErr::InvalidInstr;
+use crate::assembler_interpreter::AsmErr::*;
 use itertools::Itertools;
 use std::fmt::{Debug, Display};
+use std::str::FromStr;
 use thiserror::Error;
+use crate::assembler_interpreter::Instr::*;
+use crate::assembler_interpreter::Val::Num;
 
-//https://www.codewars.com/kata/58e61f3d8ff24f774400002c/train/rust
+//NOTE: https://www.codewars.com/kata/58e61f3d8ff24f774400002c/train/rust
 
 // TODO: use InstrType enum
 // TODO: replace string with &str and reference to original string
@@ -54,7 +57,7 @@ enum Instr {
 #[derive(Debug, PartialEq)]
 enum MsgArg {
     Reg(Reg),
-    Str(String),
+    Txt(String),
 }
 
 #[derive(Debug, PartialEq)]
@@ -69,6 +72,14 @@ enum Val {
     Num(i32),
 }
 
+impl FromStr for Val {
+    type Err = AsmErr;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo
+    }
+}
+
 pub struct AssemblerInterpreter {
     instructions: Vec<Instr>,
 }
@@ -77,6 +88,8 @@ pub struct AssemblerInterpreter {
 pub enum AsmErr {
     #[error("Invalid instruction!")]
     InvalidInstr,
+    #[error("Missing character '{0}'!")]
+    CharacterExpected(char),
 }
 
 impl AssemblerInterpreter {
@@ -106,76 +119,96 @@ impl AssemblerInterpreter {
             .collect_vec()
     }
 
-    // TODO: Add err output
     fn scan_line(line: &str) -> Result<Option<Instr>, AsmErr> {
+        fn one_arg<'a>(tokens: &mut impl Iterator<Item = &'a str>) -> Result<&'a str, AsmErr>{
+            match tokens.next() {
+                None => Err(InvalidInstr),
+                Some(arg) => Ok(arg)
+            }
+        }
+        fn two_arg<'a>(tokens: &mut impl Iterator<Item = &'a str>) -> Result<(&'a str, &'a str), AsmErr>{
+            match one_arg(tokens)?.strip_suffix(',') {
+                None => Err(CharacterExpected(',')),
+                Some(arg0) => {
+                    let arg1 = one_arg(tokens)?;
+                    Ok((arg0, arg1))
+                }
+            }
+        }
+        
+        // TODO: move to from_string
+        fn parse_value<'a>(str: &str) -> Result<Val, AsmErr>{
+            match str.parse::<i32>() {
+                Ok(num) => Ok(Num(num)),
+                Err(_) => Ok(Val::Reg(Reg(str.to_string())))
+            }
+        }
+        
         let mut tokens = line.split_whitespace();
         let instr = match tokens.next() {
-            None => return Ok(None),
-            Some(token) => match token {
-                "mov" => {
-                    unimplemented!()
-                }
-                "inc" => {
-                    unimplemented!()
-                }
-                "dec" => {
-                    unimplemented!()
-                }
-                "add" => {
-                    unimplemented!()
-                }
-                "sub" => {
-                    unimplemented!()
-                }
-                "mul" => {
-                    unimplemented!()
-                }
-                "div" => {
-                    unimplemented!()
-                }
-                "jmp" => {
-                    unimplemented!()
-                }
-                "cmp" => {
-                    unimplemented!()
-                }
-                "jne" => {
-                    unimplemented!()
-                }
-                "je" => {
-                    unimplemented!()
-                }
-                "jge" => {
-                    unimplemented!()
-                }
-                "jg" => {
-                    unimplemented!()
-                }
-                "jle" => {
-                    unimplemented!()
-                }
-                "jl" => {
-                    unimplemented!()
-                }
-                "call" => {
-                    unimplemented!()
-                }
-                "ret" => {
-                    unimplemented!()
-                }
-                "msg" => {
-                    unimplemented!()
-                }
-                "end" => {
-                    unimplemented!()
-                }
-                label => {
-                    if let Some(label) = label.strip_suffix(":") {
-                        Some(Instr::Lbl(Lbl(label.to_string())))
-                    } else {
-                        return Err(InvalidInstr);
+            None | Some(";") => return Ok(None),
+            Some(token) => {
+                // TODO: try_from
+                let token = match token {
+                    "mov" => {
+                        unimplemented!()
                     }
+                    "inc" => {
+                        unimplemented!()
+                    }
+                    "dec" => {
+                        unimplemented!()
+                    }
+                    "add" => {
+                        unimplemented!()
+                    }
+                    "sub" => {
+                        unimplemented!()
+                    }
+                    "mul" => {
+                        unimplemented!()
+                    }
+                    "div" => {
+                        let (arg0, arg1) = two_arg(&mut tokens)?;
+                        Div(/* assembler_interpreter::Reg */, /* assembler_interpreter::Val */)
+                    }
+                    "jmp" => Jmp(Lbl(one_arg(&mut tokens)?.to_string())),
+                    "cmp" => {
+                        let (arg0, arg1) = two_arg(&mut tokens)?;
+                        Cmp(parse_value(arg0)?, parse_value(arg1)?)
+                    }
+                    "jne" => Jne(Lbl(one_arg(&mut tokens)?.to_string())),
+                    "je" => Je(Lbl(one_arg(&mut tokens)?.to_string())),
+                    "jge" => Jge(Lbl(one_arg(&mut tokens)?.to_string())),
+                    "jg" => Jg(Lbl(one_arg(&mut tokens)?.to_string())),
+                    "jle" => Jle(Lbl(one_arg(&mut tokens)?.to_string())),
+                    "jl" => Jl(Lbl(one_arg(&mut tokens)?.to_string())),
+                    "call" => Call(Lbl(one_arg(&mut tokens)?.to_string())),
+                    "ret" => Ret,
+                    "msg" => {
+                        let args = line.strip_prefix("msg").unwrap().split(',').map(|arg| {
+                            // TODO: move to parse MsgArg function
+                            match arg.strip_prefix('\'').and(arg.strip_suffix('\'')) {
+                                // TODO: validate name of register prlly when new register is created
+                                None => MsgArg::Reg(Reg(arg.to_string())),
+                                Some(text) => MsgArg::Txt(text.to_string()),
+                            }
+                        }).collect_vec();
+                        Msg(args)
+                    }
+                    "end" => End,
+                    label => {
+                        if let Some(label) = label.strip_suffix(':') {
+                            Instr::Lbl(Lbl(label.to_string()))
+                        } else {
+                            return Err(CharacterExpected(':'));
+                        }
+                    }
+                };
+                if tokens.next().is_some() {
+                    return Err(InvalidInstr)
                 }
+                Some(token)
             },
         };
         Ok(instr)
@@ -200,7 +233,7 @@ function:
         Instr::Inc(Reg("a".to_string())),
         Instr::Call(Lbl("function".to_string())),
         Instr::Msg(vec![
-            MsgArg::Str("(5+1)/2 = ".to_string()),
+            MsgArg::Txt("(5+1)/2 = ".to_string()),
             MsgArg::Reg(Reg("a".to_string())),
         ]),
         Instr::End,
