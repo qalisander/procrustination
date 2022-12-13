@@ -155,6 +155,7 @@ pub enum AsmErr {
     InvalidRet,
 }
 
+#[derive(Debug)]
 pub struct AssemblerInterpreter {
     instructions: Vec<Instr>,
     registers: Registers,
@@ -162,6 +163,7 @@ pub struct AssemblerInterpreter {
     stack: Vec<usize>,
 }
 
+#[derive(Debug)]
 struct Registers(HashMap<Reg, Number>);
 
 impl Registers {
@@ -187,6 +189,7 @@ impl Registers {
     }
 }
 
+#[derive(Debug)]
 struct Labels(HashMap<Lbl, usize>);
 
 impl Labels {
@@ -221,7 +224,8 @@ impl AssemblerInterpreter {
             registers: Registers(HashMap::new()),
             stack: vec![],
         };
-
+        
+        dbg!(&interpreter);
         interpreter
             .interpret_instr()
             .expect("Error while interpreting instructions!")
@@ -435,9 +439,8 @@ impl AssemblerInterpreter {
     }
 }
 
-// TODO: write more scan tests
 #[test]
-fn scan_test() {
+fn scan_test_1() {
     let input = r"
 ; My first program
 mov  a, 5
@@ -461,6 +464,50 @@ function:
         Instr::End,
         Instr::Lbl(Lbl("function".to_string())),
         Instr::Div(Reg("a".to_string()), Val::Num(2)),
+        Instr::Ret,
+    ]
+        .map(|i| Ok(i));
+    let instructions = AssemblerInterpreter::scan(input);
+    itertools::assert_equal(instructions, expected_instructions)
+}
+
+#[test]
+fn scan_test_2() {
+    let input = r"
+mov   a, 11           ; value1
+mov   b, 3            ; value2
+call  mod_func
+msg   'mod(', a, ', ', b, ') = ', d        ; output
+end
+
+; Mod function
+mod_func:
+    mov   c, a        ; temp1
+    div   c, b
+    mul   c, b
+    mov   d, a        ; temp2
+    sub   d, c
+    ret
+";
+    let expected_instructions = [
+        Instr::Mov(Reg("a".to_string()), Val::Num(11)),
+        Instr::Mov(Reg("b".to_string()), Val::Num(3)),
+        Instr::Call(Lbl("mod_func".to_string())),
+        Instr::Msg(vec![
+            MsgArg::Txt("mod(".to_string()),
+            MsgArg::Reg(Reg("a".to_string())),
+            MsgArg::Txt(", ".to_string()),
+            MsgArg::Reg(Reg("b".to_string())),
+            MsgArg::Txt(") = ".to_string()),
+            MsgArg::Reg(Reg("d".to_string())),
+        ]),
+        Instr::End,
+        Instr::Lbl(Lbl("mod_func".to_string())),
+        Instr::Mov(Reg("c".to_string()), Val::Reg(Reg("a".to_string()))),
+        Instr::Div(Reg("c".to_string()), Val::Reg(Reg("b".to_string()))),
+        Instr::Mul(Reg("c".to_string()), Val::Reg(Reg("b".to_string()))),
+        Instr::Mov(Reg("d".to_string()), Val::Reg(Reg("a".to_string()))),
+        Instr::Sub(Reg("d".to_string()), Val::Reg(Reg("c".to_string()))),
         Instr::Ret,
     ]
     .map(|i| Ok(i));
@@ -532,7 +579,7 @@ func_0:
 print:
     msg   'Term ', a, ' of Fibonacci series is: ', b        ; output text
     ret
-",
+",////////////////////////
         r"
 mov   a, 11           ; value1
 mov   b, 3            ; value2
@@ -640,7 +687,7 @@ print:
         Some(String::from("(5+1)/2 = 3")),
         Some(String::from("5! = 120")),
         Some(String::from("Term 8 of Fibonacci series is: 21")),
-//        Some(String::from("mod(11, 3) = 2")),
+        Some(String::from("mod(11, 3) = 2")),
 //        Some(String::from("gcd(81, 153) = 9")),
 //        None,
 //        Some(String::from("2^10 = 1024")),
