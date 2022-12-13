@@ -4,8 +4,8 @@ use crate::assembler_interpreter::Val::Num;
 use itertools::Itertools;
 use std::cmp::Ordering;
 use std::collections::{HashMap, VecDeque};
-use std::fmt::{Debug, Display, format, Formatter, Pointer, Write};
-use std::str::FromStr;
+use std::fmt::{format, Debug, Display, Formatter, Pointer, Write};
+use std::str::{Chars, FromStr};
 use thiserror::Error;
 
 //NOTE: https://www.codewars.com/kata/58e61f3d8ff24f774400002c/train/rust
@@ -224,7 +224,7 @@ impl AssemblerInterpreter {
             registers: Registers(HashMap::new()),
             stack: vec![],
         };
-        
+
         dbg!(&interpreter);
         interpreter
             .interpret_instr()
@@ -416,16 +416,7 @@ impl AssemblerInterpreter {
             "jl" => Jl(one_arg(&mut tokens)?.parse()?),
             "call" => Call(one_arg(&mut tokens)?.parse()?),
             "ret" => Ret,
-            "msg" => {
-                let args = line
-                    .strip_prefix("msg")
-                    .expect("Msg already part of line")
-                    .split(',')
-                    .map(str::trim)
-                    .map(str::parse)
-                    .try_collect()?;
-                Msg(args)
-            }
+            "msg" => Msg(Self::parse_msg(line)?),
             "end" => End,
             label => {
                 if let Some(label) = label.strip_suffix(':') {
@@ -436,6 +427,46 @@ impl AssemblerInterpreter {
             }
         };
         Ok(Some(instr))
+    }
+
+    fn parse_msg(line: &str) -> Result<Vec<MsgArg>, AsmErr> {
+        let mut is_text = false;
+        let args: Vec<MsgArg> = line
+            .strip_prefix("msg")
+            .expect("Msg already part of line")
+            .chars()
+            .batching(|chars| {
+                let mut buffer = String::new();
+                loop {
+                    let ch = chars.next();
+                    match ch {
+                        None if buffer.is_empty() => break None,
+                        None => {
+                            break if is_text {
+                                Some(Err(InvalidInstr))
+                            } else {
+                                Some(Ok(MsgArg::Reg(Reg(buffer))))
+                            };
+                        }
+                        Some('\'') if buffer.is_empty() => {
+                            is_text ^= true;
+                        }
+                        Some('\'') => {
+                            let ans = if is_text {
+                                Some(Ok(MsgArg::Txt(buffer)))
+                            } else {
+                                Some(Ok(MsgArg::Reg(Reg(buffer))))
+                            };
+                            is_text ^= true;
+                            break ans;
+                        }
+                        Some(' ' | ',') if !is_text => {}
+                        Some(ch) => buffer.push(ch),
+                    }
+                }
+            })
+            .try_collect()?;
+        Ok(args)
     }
 }
 
@@ -466,7 +497,7 @@ function:
         Instr::Div(Reg("a".to_string()), Val::Num(2)),
         Instr::Ret,
     ]
-        .map(|i| Ok(i));
+    .map(|i| Ok(i));
     let instructions = AssemblerInterpreter::scan(input);
     itertools::assert_equal(instructions, expected_instructions)
 }
@@ -579,7 +610,7 @@ func_0:
 print:
     msg   'Term ', a, ' of Fibonacci series is: ', b        ; output text
     ret
-",////////////////////////
+", ////////////////////////
         r"
 mov   a, 11           ; value1
 mov   b, 3            ; value2
@@ -688,9 +719,9 @@ print:
         Some(String::from("5! = 120")),
         Some(String::from("Term 8 of Fibonacci series is: 21")),
         Some(String::from("mod(11, 3) = 2")),
-//        Some(String::from("gcd(81, 153) = 9")),
-//        None,
-//        Some(String::from("2^10 = 1024")),
+        Some(String::from("gcd(81, 153) = 9")),
+        None,
+        Some(String::from("2^10 = 1024")),
     ];
 
     for (i, (prg, exp)) in simple_programs.iter().zip(expected).enumerate() {
