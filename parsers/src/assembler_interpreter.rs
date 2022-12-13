@@ -1,16 +1,16 @@
-use crate::assembler_interpreter::AsmErr::*;
-use crate::assembler_interpreter::Instr::*;
-use crate::assembler_interpreter::Val::Num;
 use itertools::Itertools;
 use std::cmp::Ordering;
-use std::collections::{HashMap, VecDeque};
-use std::fmt::{format, Debug, Display, Formatter, Pointer, Write};
-use std::str::{Chars, FromStr};
+use std::collections::HashMap;
+use std::fmt::{Debug, Display, Formatter, Pointer, Write};
+use std::str::FromStr;
 use thiserror::Error;
+use AsmErr::*;
+use Instr::*;
+use Val::Num;
 
 //NOTE: https://www.codewars.com/kata/58e61f3d8ff24f774400002c/train/rust
 
-// TODO: use InstrType enum
+// TODO: use InstrType enum with indication of instruction line
 // TODO: replace string with &str and reference to original string
 #[derive(Debug, PartialEq, Clone)]
 enum Instr {
@@ -103,7 +103,7 @@ impl FromStr for Lbl {
     }
 }
 
-// TODO: validate name of register prlly when new register is created
+// TODO: validate name of register when new register is created
 #[derive(Debug, Hash, Clone, Ord, PartialOrd, Eq, PartialEq)]
 struct Reg(String);
 
@@ -123,7 +123,6 @@ impl FromStr for Reg {
 
 #[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq)]
 enum Val {
-    // TODO: rename to rval, lval
     Reg(Reg),
     Num(Number),
 }
@@ -142,7 +141,7 @@ impl FromStr for Val {
 }
 
 #[derive(Error, Debug, PartialEq)]
-pub enum AsmErr {
+enum AsmErr {
     #[error("Invalid instruction!")]
     InvalidInstr,
     #[error("Missing character '{0}'!")]
@@ -203,7 +202,7 @@ impl Labels {
 
 impl AssemblerInterpreter {
     pub fn interpret(input: &str) -> Option<String> {
-        // NOTE: Collect parsed lines. We have to know functions in advance
+        // Collect parsed lines. We have to know functions to call in advance
         let instructions: Vec<Instr> = Self::scan(input)
             .into_iter()
             .try_collect()
@@ -231,6 +230,7 @@ impl AssemblerInterpreter {
             .expect("Error while interpreting instructions!")
     }
 
+    /// Main processor emulation logic. With call stack, label storage and registers
     fn interpret_instr(&mut self) -> Result<Option<String>, AsmErr> {
         let mut output = String::new();
         let mut prev_ord = None;
@@ -353,13 +353,15 @@ impl AssemblerInterpreter {
     }
 
     fn scan_line(line: &str) -> Result<Option<Instr>, AsmErr> {
+        /// Parse instruction with one argument
         fn one_arg<'a>(tokens: &mut impl Iterator<Item = &'a str>) -> Result<&'a str, AsmErr> {
-            // BUG: if tokens.next() == ";"
             match tokens.next() {
                 None => Err(InvalidInstr),
                 Some(arg) => Ok(arg),
             }
         }
+
+        /// Parse instruction with two arguments
         fn two_arg<'a>(
             tokens: &mut impl Iterator<Item = &'a str>,
         ) -> Result<(&'a str, &'a str), AsmErr> {
@@ -372,10 +374,12 @@ impl AssemblerInterpreter {
             }
         }
 
+        // Strip comments or whole string if it's a comment line
         let line = match line.split(';').next().map(str::trim) {
             None | Some("") => return Ok(None),
             Some(line) => line,
         };
+
         let mut tokens = line.split_whitespace();
         let instr = match tokens
             .next()
@@ -429,6 +433,7 @@ impl AssemblerInterpreter {
         Ok(Some(instr))
     }
 
+    /// Parse message instruction. Complex because of possible existence of spaces and commas inside ' ';
     fn parse_msg(line: &str) -> Result<Vec<MsgArg>, AsmErr> {
         let mut is_text = false;
         let args: Vec<MsgArg> = line
