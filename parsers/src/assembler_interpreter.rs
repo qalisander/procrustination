@@ -1,10 +1,10 @@
 use crate::assembler_interpreter::AsmErr::*;
+use crate::assembler_interpreter::Instr::*;
+use crate::assembler_interpreter::Val::Num;
 use itertools::Itertools;
 use std::fmt::{Debug, Display};
 use std::str::FromStr;
 use thiserror::Error;
-use crate::assembler_interpreter::Instr::*;
-use crate::assembler_interpreter::Val::Num;
 
 //NOTE: https://www.codewars.com/kata/58e61f3d8ff24f774400002c/train/rust
 
@@ -12,45 +12,45 @@ use crate::assembler_interpreter::Val::Num;
 // TODO: replace string with &str and reference to original string
 #[derive(Debug, PartialEq)]
 enum Instr {
-    // mov x, y - copy y (either an integer or the value of a register) into register x.
+    /// mov x, y - copy y (either an integer or the value of a register) into register x.
     Mov(Reg, Val),
-    // inc x - increase the content of register x by one.
+    /// inc x - increase the content of register x by one.
     Inc(Reg),
-    // dec x - decrease the content of register x by one.
+    /// dec x - decrease the content of register x by one.
     Dec(Reg),
-    // add x, y - add the content of the register x with y (either an integer or the value of a register) and stores the result in x (i.e. register[x] += y).
+    /// add x, y - add the content of the register x with y (either an integer or the value of a register) and stores the result in x (i.e. register[x] += y).
     Add(Reg, Val),
-    // sub x, y - subtract y (either an integer or the value of a register) from the register x and stores the result in x (i.e. register[x] -= y).
+    /// sub x, y - subtract y (either an integer or the value of a register) from the register x and stores the result in x (i.e. register[x] -= y).
     Sub(Reg, Val),
-    // mul x, y - same with multiply (i.e. register[x] *= y).
+    /// mul x, y - same with multiply (i.e. register[x] *= y).
     Mul(Reg, Val),
-    // div x, y - same with integer division (i.e. register[x] /= y).
+    /// div x, y - same with integer division (i.e. register[x] /= y).
     Div(Reg, Val),
-    // label: - define a label position (label = identifier + ":", an identifier being a string that does not match any other command). Jump commands and call are aimed to these labels positions in the program.
+    /// label: - define a label position (label = identifier + ":", an identifier being a string that does not match any other command). Jump commands and call are aimed to these labels positions in the program.
     Lbl(Lbl),
-    // jmp lbl - jumps to the label lbl.
+    /// jmp lbl - jumps to the label lbl.
     Jmp(Lbl),
-    // cmp x, y - compares x (either an integer or the value of a register) and y (either an integer or the value of a register). The result is used in the conditional jumps (jne, je, jge, jg, jle and jl)
+    /// cmp x, y - compares x (either an integer or the value of a register) and y (either an integer or the value of a register). The result is used in the conditional jumps (jne, je, jge, jg, jle and jl)
     Cmp(Val, Val),
-    // jne lbl - jump to the label lbl if the values of the previous cmp command were not equal.
+    /// jne lbl - jump to the label lbl if the values of the previous cmp command were not equal.
     Jne(Lbl),
-    // je lbl - jump to the label lbl if the values of the previous cmp command were equal.
+    /// je lbl - jump to the label lbl if the values of the previous cmp command were equal.
     Je(Lbl),
-    // jge lbl - jump to the label lbl if x was greater or equal than y in the previous cmp command.
+    /// jge lbl - jump to the label lbl if x was greater or equal than y in the previous cmp command.
     Jge(Lbl),
-    // jg lbl - jump to the label lbl if x was greater than y in the previous cmp command.
+    /// jg lbl - jump to the label lbl if x was greater than y in the previous cmp command.
     Jg(Lbl),
-    // jle lbl - jump to the label lbl if x was less or equal than y in the previous cmp command.
+    /// jle lbl - jump to the label lbl if x was less or equal than y in the previous cmp command.
     Jle(Lbl),
-    // jl lbl - jump to the label lbl if x was less than y in the previous cmp command.
+    /// jl lbl - jump to the label lbl if x was less than y in the previous cmp command.
     Jl(Lbl),
-    // call lbl - call to the subroutine identified by lbl. When a ret is found in a subroutine, the instruction pointer should return to the instruction next to this call command.
+    /// call lbl - call to the subroutine identified by lbl. When a ret is found in a subroutine, the instruction pointer should return to the instruction next to this call command.
     Call(Lbl),
-    // ret - when a ret is found in a subroutine, the instruction pointer should return to the instruction that called the current function.
+    /// ret - when a ret is found in a subroutine, the instruction pointer should return to the instruction that called the current function.
     Ret,
-    // msg 'Register: ', x - this instruction stores the output of the program. It may contain text strings (delimited by single quotes) and registers. The number of arguments isn't limited and will vary, depending on the program.
+    /// msg 'Register: ', x - this instruction stores the output of the program. It may contain text strings (delimited by single quotes) and registers. The number of arguments isn't limited and will vary, depending on the program.
     Msg(Vec<MsgArg>),
-    // end - this instruction indicates that the program ends correctly, so the stored output is returned (if the program terminates without this instruction it should return the default output: see below).
+    /// end - this instruction indicates that the program ends correctly, so the stored output is returned (if the program terminates without this instruction it should return the default output: see below).
     End,
 }
 
@@ -60,11 +60,39 @@ enum MsgArg {
     Txt(String),
 }
 
+impl FromStr for MsgArg {
+    type Err = AsmErr;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.strip_prefix('\'').and(s.strip_suffix('\'')) {
+            None => Ok(MsgArg::Reg(s.parse()?)),
+            Some(text) => Ok(MsgArg::Txt(text.to_string())),
+        }
+    }
+}
+
 #[derive(Debug, PartialEq)]
 struct Lbl(String);
 
+impl FromStr for Lbl {
+    type Err = AsmErr;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Lbl(s.to_string()))
+    }
+}
+
+// TODO: validate name of register prlly when new register is created
 #[derive(Debug, PartialEq)]
 struct Reg(String);
+
+impl FromStr for Reg {
+    type Err = AsmErr;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Reg(s.to_string()))
+    }
+}
 
 #[derive(Debug, PartialEq)]
 enum Val {
@@ -76,12 +104,11 @@ impl FromStr for Val {
     type Err = AsmErr;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        todo
+        match s.parse::<i32>() {
+            Ok(num) => Ok(Num(num)),
+            Err(_) => Ok(Val::Reg(s.parse()?)),
+        }
     }
-}
-
-pub struct AssemblerInterpreter {
-    instructions: Vec<Instr>,
 }
 
 #[derive(Error, Debug, PartialEq)]
@@ -90,6 +117,10 @@ pub enum AsmErr {
     InvalidInstr,
     #[error("Missing character '{0}'!")]
     CharacterExpected(char),
+}
+
+pub struct AssemblerInterpreter {
+    instructions: Vec<Instr>,
 }
 
 impl AssemblerInterpreter {
@@ -119,14 +150,17 @@ impl AssemblerInterpreter {
             .collect_vec()
     }
 
+    // TODO: try_into
     fn scan_line(line: &str) -> Result<Option<Instr>, AsmErr> {
-        fn one_arg<'a>(tokens: &mut impl Iterator<Item = &'a str>) -> Result<&'a str, AsmErr>{
+        fn one_arg<'a>(tokens: &mut impl Iterator<Item = &'a str>) -> Result<&'a str, AsmErr> {
             match tokens.next() {
                 None => Err(InvalidInstr),
-                Some(arg) => Ok(arg)
+                Some(arg) => Ok(arg),
             }
         }
-        fn two_arg<'a>(tokens: &mut impl Iterator<Item = &'a str>) -> Result<(&'a str, &'a str), AsmErr>{
+        fn two_arg<'a>(
+            tokens: &mut impl Iterator<Item = &'a str>,
+        ) -> Result<(&'a str, &'a str), AsmErr> {
             match one_arg(tokens)?.strip_suffix(',') {
                 None => Err(CharacterExpected(',')),
                 Some(arg0) => {
@@ -135,65 +169,59 @@ impl AssemblerInterpreter {
                 }
             }
         }
-        
-        // TODO: move to from_string
-        fn parse_value<'a>(str: &str) -> Result<Val, AsmErr>{
-            match str.parse::<i32>() {
-                Ok(num) => Ok(Num(num)),
-                Err(_) => Ok(Val::Reg(Reg(str.to_string())))
-            }
-        }
-        
+
         let mut tokens = line.split_whitespace();
         let instr = match tokens.next() {
             None | Some(";") => return Ok(None),
             Some(token) => {
-                // TODO: try_from
                 let token = match token {
                     "mov" => {
-                        unimplemented!()
+                        let (arg0, arg1) = two_arg(&mut tokens)?;
+                        Mov(arg0.parse()?, arg1.parse()?)
                     }
                     "inc" => {
-                        unimplemented!()
+                        Inc(one_arg(&mut tokens)?.parse()?)
                     }
                     "dec" => {
-                        unimplemented!()
+                        Dec(one_arg(&mut tokens)?.parse()?)
                     }
                     "add" => {
-                        unimplemented!()
+                        let (arg0, arg1) = two_arg(&mut tokens)?;
+                        Add(arg0.parse()?, arg1.parse()?)
                     }
                     "sub" => {
-                        unimplemented!()
+                        let (arg0, arg1) = two_arg(&mut tokens)?;
+                        Sub(arg0.parse()?, arg1.parse()?)
                     }
                     "mul" => {
-                        unimplemented!()
+                        let (arg0, arg1) = two_arg(&mut tokens)?;
+                        Mul(arg0.parse()?, arg1.parse()?)
                     }
                     "div" => {
                         let (arg0, arg1) = two_arg(&mut tokens)?;
-                        Div(/* assembler_interpreter::Reg */, /* assembler_interpreter::Val */)
+                        Div(arg0.parse()?, arg1.parse()?)
                     }
-                    "jmp" => Jmp(Lbl(one_arg(&mut tokens)?.to_string())),
+                    "jmp" => Jmp(one_arg(&mut tokens)?.parse()?),
                     "cmp" => {
                         let (arg0, arg1) = two_arg(&mut tokens)?;
-                        Cmp(parse_value(arg0)?, parse_value(arg1)?)
+                        Cmp(arg0.parse()?, arg1.parse()?)
                     }
-                    "jne" => Jne(Lbl(one_arg(&mut tokens)?.to_string())),
-                    "je" => Je(Lbl(one_arg(&mut tokens)?.to_string())),
-                    "jge" => Jge(Lbl(one_arg(&mut tokens)?.to_string())),
-                    "jg" => Jg(Lbl(one_arg(&mut tokens)?.to_string())),
-                    "jle" => Jle(Lbl(one_arg(&mut tokens)?.to_string())),
-                    "jl" => Jl(Lbl(one_arg(&mut tokens)?.to_string())),
-                    "call" => Call(Lbl(one_arg(&mut tokens)?.to_string())),
+                    "jne" => Jne(one_arg(&mut tokens)?.parse()?),
+                    "je" => Je(one_arg(&mut tokens)?.parse()?),
+                    "jge" => Jge(one_arg(&mut tokens)?.parse()?),
+                    "jg" => Jg(one_arg(&mut tokens)?.parse()?),
+                    "jle" => Jle(one_arg(&mut tokens)?.parse()?),
+                    "jl" => Jl(one_arg(&mut tokens)?.parse()?),
+                    "call" => Call(one_arg(&mut tokens)?.parse()?),
                     "ret" => Ret,
                     "msg" => {
-                        let args = line.strip_prefix("msg").unwrap().split(',').map(|arg| {
-                            // TODO: move to parse MsgArg function
-                            match arg.strip_prefix('\'').and(arg.strip_suffix('\'')) {
-                                // TODO: validate name of register prlly when new register is created
-                                None => MsgArg::Reg(Reg(arg.to_string())),
-                                Some(text) => MsgArg::Txt(text.to_string()),
-                            }
-                        }).collect_vec();
+                        let args = line
+                            .strip_prefix("msg")
+                            .unwrap()
+                            .split(',')
+                            .map(str::trim)
+                            .map(str::parse)
+                            .try_collect()?;
                         Msg(args)
                     }
                     "end" => End,
@@ -205,16 +233,17 @@ impl AssemblerInterpreter {
                         }
                     }
                 };
-                if tokens.next().is_some() {
-                    return Err(InvalidInstr)
+                match tokens.next() {
+                    None | Some(";") => Some(token),
+                    Some(_) => return Err(InvalidInstr),
                 }
-                Some(token)
-            },
+            }
         };
         Ok(instr)
     }
 }
 
+#[test]
 fn scan_test() {
     let input = r"
 ; My first program
