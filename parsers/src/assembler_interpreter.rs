@@ -2,6 +2,7 @@ use crate::assembler_interpreter::AsmErr::*;
 use crate::assembler_interpreter::Instr::*;
 use crate::assembler_interpreter::Val::Num;
 use itertools::Itertools;
+use std::cmp::Ordering;
 use std::collections::{HashMap, VecDeque};
 use std::fmt::{Debug, Display, Formatter, Pointer, Write};
 use std::str::FromStr;
@@ -122,17 +123,18 @@ impl FromStr for Reg {
 
 #[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq)]
 enum Val {
+    // TODO: rename to rval, lval
     Reg(Reg),
-    Num(RegVal),
+    Num(Number),
 }
 
-type RegVal = i32;
+type Number = i32;
 
 impl FromStr for Val {
     type Err = AsmErr;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.parse::<RegVal>() {
+        match s.parse::<Number>() {
             Ok(num) => Ok(Num(num)),
             Err(_) => Ok(Val::Reg(s.parse()?)),
         }
@@ -155,9 +157,45 @@ pub enum AsmErr {
 
 pub struct AssemblerInterpreter {
     instructions: Vec<Instr>,
-    registers: HashMap<Reg, RegVal>,
-    labels: HashMap<Lbl, usize>,
+    registers: Registers,
+    labels: Labels,
     stack: Vec<usize>,
+}
+
+struct Registers(HashMap<Reg, Number>);
+
+impl Registers {
+    fn get(&self, val: &Val) -> Result<Number, AsmErr> {
+        match val {
+            Val::Reg(reg) => self
+                .0
+                .get(reg)
+                .cloned()
+                .ok_or(NonExistentRegister(reg.clone())),
+            Num(num) => Ok(*num),
+        }
+    }
+
+    fn get_mut(&mut self, reg: &Reg) -> Result<&mut Number, AsmErr> {
+        self.0
+            .get_mut(reg)
+            .ok_or_else(|| NonExistentRegister(reg.clone()))
+    }
+
+    fn insert(&mut self, reg: &Reg, num: Number) {
+        self.0.insert(reg.clone(), num);
+    }
+}
+
+struct Labels(HashMap<Lbl, usize>);
+
+impl Labels {
+    fn get(&self, lbl: &Lbl) -> Result<usize, AsmErr> {
+        self.0
+            .get(lbl)
+            .cloned()
+            .ok_or(NonExistentLabel(lbl.clone()))
+    }
 }
 
 impl AssemblerInterpreter {
@@ -179,9 +217,9 @@ impl AssemblerInterpreter {
 
         let mut interpreter = AssemblerInterpreter {
             instructions,
-            labels,
-            registers: HashMap::new(),
-            stack: vec![]
+            labels: Labels(labels),
+            registers: Registers(HashMap::new()),
+            stack: vec![],
         };
 
         interpreter
@@ -201,68 +239,77 @@ impl AssemblerInterpreter {
             let instr = &self.instructions[i];
             match instr {
                 Mov(reg, val) => {
-                    let val = *match val {
-                        Val::Reg(reg1) => self
-                            .registers
-                            .get(reg1)
-                            .ok_or(NonExistentRegister(reg1.clone()))?,
-                        Num(num) => num,
-                    };
-                    self.registers.insert(reg.clone(), val);
+                    let val = self.registers.get(val)?;
+                    self.registers.insert(reg, val);
                 }
                 Inc(reg) => {
-                    let value = self
-                        .registers
-                        .get_mut(reg)
-                        .ok_or(NonExistentRegister(reg.clone()))?;
-                    *value += 1;
+                    let val = self.registers.get_mut(reg)?;
+                    *val += 1;
                 }
                 Dec(reg) => {
-                    let value = self
-                        .registers
-                        .get_mut(reg)
-                        .ok_or(NonExistentRegister(reg.clone()))?;
-                    *value -= 1;
+                    let val = self.registers.get_mut(reg)?;
+                    *val -= 1;
                 }
                 Add(reg, val) => {
-                    let r_val = *match val {
-                        Val::Reg(reg1) => self
-                            .registers
-                            .get(reg1)
-                            .ok_or(NonExistentRegister(reg1.clone()))?,
-                        Num(num) => num,
-                    };
-                    let l_val = self
-                        .registers
-                        .get_mut(reg)
-                        .ok_or(NonExistentRegister(reg.clone()))?;
+                    let r_val = self.registers.get(val)?;
+                    let l_val = self.registers.get_mut(reg)?;
                     *l_val += r_val;
                 }
-                Sub(reg, val) => {unimplemented!()}
-                Mul(reg, val) => {unimplemented!()}
-                Div(reg, val) => {unimplemented!()}
+                Sub(reg, val) => {
+                    let r_val = self.registers.get(val)?;
+                    let l_val = self.registers.get_mut(reg)?;
+                    *l_val -= r_val;
+                }
+                Mul(reg, val) => {
+                    let r_val = self.registers.get(val)?;
+                    let l_val = self.registers.get_mut(reg)?;
+                    *l_val *= r_val;
+                }
+                Div(reg, val) => {
+                    let r_val = self.registers.get(val)?;
+                    let l_val = self.registers.get_mut(reg)?;
+                    *l_val /= r_val;
+                }
                 Instr::Lbl(_) => {}
-                Jmp(lbl) => {
-                    i = *self
-                        .labels
-                        .get(lbl)
-                        .ok_or_else(|| NonExistentLabel(lbl.clone()))?
-                }
+                Jmp(lbl) => i = self.labels.get(lbl)?,
                 Cmp(val0, val1) => {
-                    prev_ord = Some(val0.cmp(val1));
+                    let val0 = self.registers.get(val0)?;
+                    let val1 = self.registers.get(val1)?;
+                    prev_ord = Some(val0.cmp(&val1));
                 }
-                Jne(lbl) => {unimplemented!()}
-                Je(lbl) => {unimplemented!()}
-                Jge(lbl) => {unimplemented!()}
-                Jg(lbl) => {unimplemented!()}
-                Jle(lbl) => {unimplemented!()}
-                Jl(lbl) => {unimplemented!()}
+                Jne(lbl) => {
+                    if !matches!(prev_ord, Some(Ordering::Equal)) {
+                        i = self.labels.get(lbl)?
+                    }
+                }
+                Je(lbl) => {
+                    if matches!(prev_ord, Some(Ordering::Equal)) {
+                        i = self.labels.get(lbl)?;
+                    }
+                }
+                Jge(lbl) => {
+                    if matches!(prev_ord, Some(Ordering::Greater) | Some(Ordering::Equal)) {
+                        i = self.labels.get(lbl)?;
+                    }
+                }
+                Jg(lbl) => {
+                    if matches!(prev_ord, Some(Ordering::Greater)) {
+                        i = self.labels.get(lbl)?;
+                    }
+                }
+                Jle(lbl) => {
+                    if matches!(prev_ord, Some(Ordering::Less) | Some(Ordering::Equal)) {
+                        i = self.labels.get(lbl)?;
+                    }
+                }
+                Jl(lbl) => {
+                    if matches!(prev_ord, Some(Ordering::Less)) {
+                        i = self.labels.get(lbl)?;
+                    }
+                }
                 Call(lbl) => {
                     self.stack.push(i);
-                    i = *self
-                        .labels
-                        .get(lbl)
-                        .ok_or_else(|| NonExistentLabel(lbl.clone()))?
+                    i = self.labels.get(lbl)?;
                 }
                 Ret => {
                     i = self.stack.pop().ok_or(InvalidRet)?;
