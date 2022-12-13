@@ -150,9 +150,9 @@ impl AssemblerInterpreter {
             .collect_vec()
     }
 
-    // TODO: try_into
     fn scan_line(line: &str) -> Result<Option<Instr>, AsmErr> {
         fn one_arg<'a>(tokens: &mut impl Iterator<Item = &'a str>) -> Result<&'a str, AsmErr> {
+            // BUG: if tokens.next() == ";"
             match tokens.next() {
                 None => Err(InvalidInstr),
                 Some(arg) => Ok(arg),
@@ -179,12 +179,8 @@ impl AssemblerInterpreter {
                         let (arg0, arg1) = two_arg(&mut tokens)?;
                         Mov(arg0.parse()?, arg1.parse()?)
                     }
-                    "inc" => {
-                        Inc(one_arg(&mut tokens)?.parse()?)
-                    }
-                    "dec" => {
-                        Dec(one_arg(&mut tokens)?.parse()?)
-                    }
+                    "inc" => Inc(one_arg(&mut tokens)?.parse()?),
+                    "dec" => Dec(one_arg(&mut tokens)?.parse()?),
                     "add" => {
                         let (arg0, arg1) = two_arg(&mut tokens)?;
                         Add(arg0.parse()?, arg1.parse()?)
@@ -218,8 +214,10 @@ impl AssemblerInterpreter {
                         let args = line
                             .strip_prefix("msg")
                             .unwrap()
+                            .split_once(';').unwrap().0
                             .split(',')
                             .map(str::trim)
+                            .take_while(|t| t.strip_suffix(';').is_none())
                             .map(str::parse)
                             .try_collect()?;
                         Msg(args)
@@ -235,6 +233,7 @@ impl AssemblerInterpreter {
                 };
                 match tokens.next() {
                     None | Some(";") => Some(token),
+                    _ if matches!(token, Msg(_)) => Some(token),
                     Some(_) => return Err(InvalidInstr),
                 }
             }
