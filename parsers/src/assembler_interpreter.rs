@@ -64,7 +64,7 @@ impl FromStr for MsgArg {
     type Err = AsmErr;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.strip_prefix('\'').and(s.strip_suffix('\'')) {
+        match s.strip_prefix('\'').and_then(|s| s.strip_suffix('\'')) {
             None => Ok(MsgArg::Reg(s.parse()?)),
             Some(text) => Ok(MsgArg::Txt(text.to_string())),
         }
@@ -170,75 +170,70 @@ impl AssemblerInterpreter {
             }
         }
 
+        let line = match line.split(';').next().map(str::trim) {
+            None | Some("") => return Ok(None),
+            Some(line) => line,
+        };
         let mut tokens = line.split_whitespace();
-        let instr = match tokens.next() {
-            None | Some(";") => return Ok(None),
-            Some(token) => {
-                let token = match token {
-                    "mov" => {
-                        let (arg0, arg1) = two_arg(&mut tokens)?;
-                        Mov(arg0.parse()?, arg1.parse()?)
-                    }
-                    "inc" => Inc(one_arg(&mut tokens)?.parse()?),
-                    "dec" => Dec(one_arg(&mut tokens)?.parse()?),
-                    "add" => {
-                        let (arg0, arg1) = two_arg(&mut tokens)?;
-                        Add(arg0.parse()?, arg1.parse()?)
-                    }
-                    "sub" => {
-                        let (arg0, arg1) = two_arg(&mut tokens)?;
-                        Sub(arg0.parse()?, arg1.parse()?)
-                    }
-                    "mul" => {
-                        let (arg0, arg1) = two_arg(&mut tokens)?;
-                        Mul(arg0.parse()?, arg1.parse()?)
-                    }
-                    "div" => {
-                        let (arg0, arg1) = two_arg(&mut tokens)?;
-                        Div(arg0.parse()?, arg1.parse()?)
-                    }
-                    "jmp" => Jmp(one_arg(&mut tokens)?.parse()?),
-                    "cmp" => {
-                        let (arg0, arg1) = two_arg(&mut tokens)?;
-                        Cmp(arg0.parse()?, arg1.parse()?)
-                    }
-                    "jne" => Jne(one_arg(&mut tokens)?.parse()?),
-                    "je" => Je(one_arg(&mut tokens)?.parse()?),
-                    "jge" => Jge(one_arg(&mut tokens)?.parse()?),
-                    "jg" => Jg(one_arg(&mut tokens)?.parse()?),
-                    "jle" => Jle(one_arg(&mut tokens)?.parse()?),
-                    "jl" => Jl(one_arg(&mut tokens)?.parse()?),
-                    "call" => Call(one_arg(&mut tokens)?.parse()?),
-                    "ret" => Ret,
-                    "msg" => {
-                        let args = line
-                            .strip_prefix("msg")
-                            .unwrap()
-                            .split_once(';').unwrap().0
-                            .split(',')
-                            .map(str::trim)
-                            .take_while(|t| t.strip_suffix(';').is_none())
-                            .map(str::parse)
-                            .try_collect()?;
-                        Msg(args)
-                    }
-                    "end" => End,
-                    label => {
-                        if let Some(label) = label.strip_suffix(':') {
-                            Instr::Lbl(Lbl(label.to_string()))
-                        } else {
-                            return Err(CharacterExpected(':'));
-                        }
-                    }
-                };
-                match tokens.next() {
-                    None | Some(";") => Some(token),
-                    _ if matches!(token, Msg(_)) => Some(token),
-                    Some(_) => return Err(InvalidInstr),
+        let instr = match tokens
+            .next()
+            .expect("There is at least one no whitespace character")
+        {
+            "mov" => {
+                let (arg0, arg1) = two_arg(&mut tokens)?;
+                Mov(arg0.parse()?, arg1.parse()?)
+            }
+            "inc" => Inc(one_arg(&mut tokens)?.parse()?),
+            "dec" => Dec(one_arg(&mut tokens)?.parse()?),
+            "add" => {
+                let (arg0, arg1) = two_arg(&mut tokens)?;
+                Add(arg0.parse()?, arg1.parse()?)
+            }
+            "sub" => {
+                let (arg0, arg1) = two_arg(&mut tokens)?;
+                Sub(arg0.parse()?, arg1.parse()?)
+            }
+            "mul" => {
+                let (arg0, arg1) = two_arg(&mut tokens)?;
+                Mul(arg0.parse()?, arg1.parse()?)
+            }
+            "div" => {
+                let (arg0, arg1) = two_arg(&mut tokens)?;
+                Div(arg0.parse()?, arg1.parse()?)
+            }
+            "jmp" => Jmp(one_arg(&mut tokens)?.parse()?),
+            "cmp" => {
+                let (arg0, arg1) = two_arg(&mut tokens)?;
+                Cmp(arg0.parse()?, arg1.parse()?)
+            }
+            "jne" => Jne(one_arg(&mut tokens)?.parse()?),
+            "je" => Je(one_arg(&mut tokens)?.parse()?),
+            "jge" => Jge(one_arg(&mut tokens)?.parse()?),
+            "jg" => Jg(one_arg(&mut tokens)?.parse()?),
+            "jle" => Jle(one_arg(&mut tokens)?.parse()?),
+            "jl" => Jl(one_arg(&mut tokens)?.parse()?),
+            "call" => Call(one_arg(&mut tokens)?.parse()?),
+            "ret" => Ret,
+            "msg" => {
+                let args = line
+                    .strip_prefix("msg")
+                    .expect("Msg already part of line")
+                    .split(',')
+                    .map(str::trim)
+                    .map(str::parse)
+                    .try_collect()?;
+                Msg(args)
+            }
+            "end" => End,
+            label => {
+                if let Some(label) = label.strip_suffix(':') {
+                    Instr::Lbl(Lbl(label.to_string()))
+                } else {
+                    return Err(CharacterExpected(':'));
                 }
             }
         };
-        Ok(instr)
+        Ok(Some(instr))
     }
 }
 
