@@ -2,7 +2,7 @@ use crate::assembler_interpreter::AsmErr::*;
 use crate::assembler_interpreter::Instr::*;
 use crate::assembler_interpreter::Val::Num;
 use itertools::Itertools;
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::fmt::{Debug, Display, Formatter, Pointer, Write};
 use std::str::FromStr;
 use thiserror::Error;
@@ -63,10 +63,14 @@ enum MsgArg {
 
 impl Display for MsgArg {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{0}", match self {
-            MsgArg::Reg(reg) => &reg.0,
-            MsgArg::Txt(str) => str,
-        })
+        write!(
+            f,
+            "{0}",
+            match self {
+                MsgArg::Reg(reg) => &reg.0,
+                MsgArg::Txt(str) => str,
+            }
+        )
     }
 }
 
@@ -84,6 +88,12 @@ impl FromStr for MsgArg {
 #[derive(Debug, Eq, PartialEq, Hash, Clone)]
 struct Lbl(String);
 
+impl Display for Lbl {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "{0}", self.0)
+    }
+}
+
 impl FromStr for Lbl {
     type Err = AsmErr;
 
@@ -93,7 +103,7 @@ impl FromStr for Lbl {
 }
 
 // TODO: validate name of register prlly when new register is created
-#[derive(Debug, Eq, PartialEq, Hash, Clone)]
+#[derive(Debug, Hash, Clone, Ord, PartialOrd, Eq, PartialEq)]
 struct Reg(String);
 
 impl Display for Reg {
@@ -110,7 +120,7 @@ impl FromStr for Reg {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq)]
 enum Val {
     Reg(Reg),
     Num(RegVal),
@@ -137,12 +147,17 @@ pub enum AsmErr {
     CharacterExpected(char),
     #[error("Register does not exist '{0}'!")]
     NonExistentRegister(Reg),
+    #[error("Label does not exist '{0}'!")]
+    NonExistentLabel(Lbl),
+    #[error("Invalid return 'ret' from call!")]
+    InvalidRet,
 }
 
 pub struct AssemblerInterpreter {
     instructions: Vec<Instr>,
     registers: HashMap<Reg, RegVal>,
     labels: HashMap<Lbl, usize>,
+    stack: Vec<usize>,
 }
 
 impl AssemblerInterpreter {
@@ -153,7 +168,6 @@ impl AssemblerInterpreter {
             .try_collect()
             .expect("Error while scanning!");
 
-        let registers = HashMap::new();
         let labels = instructions
             .iter()
             .enumerate()
@@ -165,8 +179,9 @@ impl AssemblerInterpreter {
 
         let mut interpreter = AssemblerInterpreter {
             instructions,
-            registers,
             labels,
+            registers: HashMap::new(),
+            stack: vec![]
         };
 
         interpreter
@@ -176,58 +191,90 @@ impl AssemblerInterpreter {
 
     fn interpret_instr(&mut self) -> Result<Option<String>, AsmErr> {
         let mut output = String::new();
+        let mut prev_ord = None;
         let mut i: usize = 0;
         return loop {
             if i >= self.instructions.len() {
-                break Ok(None)
+                break Ok(None);
             }
-            
+
             let instr = &self.instructions[i];
             match instr {
                 Mov(reg, val) => {
-                    let val = match val {
+                    let val = *match val {
                         Val::Reg(reg1) => self
                             .registers
                             .get(reg1)
                             .ok_or(NonExistentRegister(reg1.clone()))?,
                         Num(num) => num,
                     };
-                    self.registers.insert(reg.clone(), *val);
+                    self.registers.insert(reg.clone(), val);
                 }
                 Inc(reg) => {
-                    let entry = self.registers.get_mut(reg).ok_or(NonExistentRegister(reg.clone()))?;
-                    *entry += 1;
+                    let value = self
+                        .registers
+                        .get_mut(reg)
+                        .ok_or(NonExistentRegister(reg.clone()))?;
+                    *value += 1;
                 }
                 Dec(reg) => {
-                    let entry = self.registers.get_mut(reg).ok_or(NonExistentRegister(reg.clone()))?;
-                    *entry -= 1;
+                    let value = self
+                        .registers
+                        .get_mut(reg)
+                        .ok_or(NonExistentRegister(reg.clone()))?;
+                    *value -= 1;
                 }
-                Add(reg, val) => {}
-                Sub(reg, val) => {}
-                Mul(reg, val) => {}
-                Div(reg, val) => {}
-//                Instr::Lbl(_) => {}
-                Jmp(lbl) => {}
-                Cmp(val0, val1) => {}
-                Jne(lbl) => {}
-                Je(lbl) => {}
-                Jge(lbl) => {}
-                Jg(lbl) => {}
-                Jle(lbl) => {}
-                Jl(lbl) => {}
-                Call(lbl) => {}
+                Add(reg, val) => {
+                    let r_val = *match val {
+                        Val::Reg(reg1) => self
+                            .registers
+                            .get(reg1)
+                            .ok_or(NonExistentRegister(reg1.clone()))?,
+                        Num(num) => num,
+                    };
+                    let l_val = self
+                        .registers
+                        .get_mut(reg)
+                        .ok_or(NonExistentRegister(reg.clone()))?;
+                    *l_val += r_val;
+                }
+                Sub(reg, val) => {unimplemented!()}
+                Mul(reg, val) => {unimplemented!()}
+                Div(reg, val) => {unimplemented!()}
+                Instr::Lbl(_) => {}
+                Jmp(lbl) => {
+                    i = *self
+                        .labels
+                        .get(lbl)
+                        .ok_or_else(|| NonExistentLabel(lbl.clone()))?
+                }
+                Cmp(val0, val1) => {
+                    prev_ord = Some(val0.cmp(val1));
+                }
+                Jne(lbl) => {unimplemented!()}
+                Je(lbl) => {unimplemented!()}
+                Jge(lbl) => {unimplemented!()}
+                Jg(lbl) => {unimplemented!()}
+                Jle(lbl) => {unimplemented!()}
+                Jl(lbl) => {unimplemented!()}
+                Call(lbl) => {
+                    self.stack.push(i);
+                    i = *self
+                        .labels
+                        .get(lbl)
+                        .ok_or_else(|| NonExistentLabel(lbl.clone()))?
+                }
                 Ret => {
-                    // TODO: add stack
+                    i = self.stack.pop().ok_or(InvalidRet)?;
                 }
                 Msg(args) => {
                     let msg = args.iter().map(MsgArg::to_string).join("");
                     writeln!(&mut output, "{msg}");
                 }
                 End => break Ok(Some(output)),
-                _ => (),
             }
             i += 1;
-        }
+        };
     }
 
     fn scan(input: &str) -> Vec<Result<Instr, AsmErr>> {
@@ -325,6 +372,7 @@ impl AssemblerInterpreter {
     }
 }
 
+// TODO: write more scan tests
 #[test]
 fn scan_test() {
     let input = r"
