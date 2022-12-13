@@ -2,6 +2,7 @@ use crate::assembler_interpreter::AsmErr::*;
 use crate::assembler_interpreter::Instr::*;
 use crate::assembler_interpreter::Val::Num;
 use itertools::Itertools;
+use std::collections::HashMap;
 use std::fmt::{Debug, Display};
 use std::str::FromStr;
 use thiserror::Error;
@@ -10,7 +11,7 @@ use thiserror::Error;
 
 // TODO: use InstrType enum
 // TODO: replace string with &str and reference to original string
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 enum Instr {
     /// mov x, y - copy y (either an integer or the value of a register) into register x.
     Mov(Reg, Val),
@@ -54,7 +55,7 @@ enum Instr {
     End,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 enum MsgArg {
     Reg(Reg),
     Txt(String),
@@ -71,7 +72,7 @@ impl FromStr for MsgArg {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Hash, Clone)]
 struct Lbl(String);
 
 impl FromStr for Lbl {
@@ -83,7 +84,7 @@ impl FromStr for Lbl {
 }
 
 // TODO: validate name of register prlly when new register is created
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Hash, Clone)]
 struct Reg(String);
 
 impl FromStr for Reg {
@@ -94,17 +95,19 @@ impl FromStr for Reg {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 enum Val {
     Reg(Reg),
-    Num(i32),
+    Num(RegVal),
 }
+
+type RegVal = i32;
 
 impl FromStr for Val {
     type Err = AsmErr;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.parse::<i32>() {
+        match s.parse::<RegVal>() {
             Ok(num) => Ok(Num(num)),
             Err(_) => Ok(Val::Reg(s.parse()?)),
         }
@@ -121,17 +124,33 @@ pub enum AsmErr {
 
 pub struct AssemblerInterpreter {
     instructions: Vec<Instr>,
+    registers: HashMap<Reg, RegVal>,
+    labels: HashMap<Lbl, usize>,
 }
 
 impl AssemblerInterpreter {
     pub fn interpret(input: &str) -> Option<String> {
-        // NOTE: Parse all this lines. Because we have to know functions in advance
+        // NOTE: Collect parsed lines. We have to know functions in advance
         let instructions: Vec<Instr> = Self::scan(input)
             .into_iter()
             .try_collect()
             .expect("Error while scanning!");
 
-        let interpreter = AssemblerInterpreter { instructions };
+        let registers = HashMap::new();
+        let labels = instructions
+            .iter()
+            .enumerate()
+            .filter_map(|(i, instr)| match instr {
+                Instr::Lbl(lbl) => Some((lbl.clone(), i)),
+                _ => None,
+            })
+            .collect();
+        
+        let mut interpreter = AssemblerInterpreter {
+            instructions,
+            registers,
+            labels,
+        };
 
         interpreter
             .interpret_instr()
