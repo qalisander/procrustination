@@ -3,7 +3,7 @@ use crate::assembler_interpreter::Instr::*;
 use crate::assembler_interpreter::Val::Num;
 use itertools::Itertools;
 use std::collections::HashMap;
-use std::fmt::{Debug, Display};
+use std::fmt::{Debug, Display, Formatter, Pointer, Write};
 use std::str::FromStr;
 use thiserror::Error;
 
@@ -61,6 +61,15 @@ enum MsgArg {
     Txt(String),
 }
 
+impl Display for MsgArg {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{0}", match self {
+            MsgArg::Reg(reg) => &reg.0,
+            MsgArg::Txt(str) => str,
+        })
+    }
+}
+
 impl FromStr for MsgArg {
     type Err = AsmErr;
 
@@ -84,8 +93,14 @@ impl FromStr for Lbl {
 }
 
 // TODO: validate name of register prlly when new register is created
-#[derive(Debug, PartialEq, Hash, Clone)]
+#[derive(Debug, Eq, PartialEq, Hash, Clone)]
 struct Reg(String);
+
+impl Display for Reg {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{0}", &self.0)
+    }
+}
 
 impl FromStr for Reg {
     type Err = AsmErr;
@@ -120,6 +135,8 @@ pub enum AsmErr {
     InvalidInstr,
     #[error("Missing character '{0}'!")]
     CharacterExpected(char),
+    #[error("Register does not exist '{0}'!")]
+    NonExistentRegister(Reg),
 }
 
 pub struct AssemblerInterpreter {
@@ -145,7 +162,7 @@ impl AssemblerInterpreter {
                 _ => None,
             })
             .collect();
-        
+
         let mut interpreter = AssemblerInterpreter {
             instructions,
             registers,
@@ -157,8 +174,60 @@ impl AssemblerInterpreter {
             .expect("Error while interpreting instructions!")
     }
 
-    fn interpret_instr(&self) -> Result<Option<String>, AsmErr> {
-        unimplemented!()
+    fn interpret_instr(&mut self) -> Result<Option<String>, AsmErr> {
+        let mut output = String::new();
+        let mut i: usize = 0;
+        return loop {
+            if i >= self.instructions.len() {
+                break Ok(None)
+            }
+            
+            let instr = &self.instructions[i];
+            match instr {
+                Mov(reg, val) => {
+                    let val = match val {
+                        Val::Reg(reg1) => self
+                            .registers
+                            .get(reg1)
+                            .ok_or(NonExistentRegister(reg1.clone()))?,
+                        Num(num) => num,
+                    };
+                    self.registers.insert(reg.clone(), *val);
+                }
+                Inc(reg) => {
+                    let entry = self.registers.get_mut(reg).ok_or(NonExistentRegister(reg.clone()))?;
+                    *entry += 1;
+                }
+                Dec(reg) => {
+                    let entry = self.registers.get_mut(reg).ok_or(NonExistentRegister(reg.clone()))?;
+                    *entry -= 1;
+                }
+                Add(reg, val) => {}
+                Sub(reg, val) => {}
+                Mul(reg, val) => {}
+                Div(reg, val) => {}
+//                Instr::Lbl(_) => {}
+                Jmp(lbl) => {}
+                Cmp(val0, val1) => {}
+                Jne(lbl) => {}
+                Je(lbl) => {}
+                Jge(lbl) => {}
+                Jg(lbl) => {}
+                Jle(lbl) => {}
+                Jl(lbl) => {}
+                Call(lbl) => {}
+                Ret => {
+                    // TODO: add stack
+                }
+                Msg(args) => {
+                    let msg = args.iter().map(MsgArg::to_string).join("");
+                    writeln!(&mut output, "{msg}");
+                }
+                End => break Ok(Some(output)),
+                _ => (),
+            }
+            i += 1;
+        }
     }
 
     fn scan(input: &str) -> Vec<Result<Instr, AsmErr>> {
