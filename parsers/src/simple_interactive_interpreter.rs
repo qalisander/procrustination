@@ -9,6 +9,7 @@ use std::ops::Deref;
 // TODO: end of string token and make programs bit more difficult
 // TODO: errors highlighting
 // TODO: add benchmarks
+// TODO: make larpop implementation
 
 #[derive(Clone, Debug)]
 struct TokenInfo {
