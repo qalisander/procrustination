@@ -1,2 +1,5 @@
 /target
 /Cargo.lock
+.gitsecret/keys/random_seed
+!*.secret
+cookie
