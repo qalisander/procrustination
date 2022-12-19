@@ -83,12 +83,21 @@ fn get_problem_from_input() -> Option<u8> {
 }
 
 fn get_problem_from_date() -> Option<u8> {
-    //    https://docs.rs/chrono/0.4.23/chrono/
-    let time_zone = FixedOffset::east_opt(-5).unwrap();
+    //https://docs.rs/chrono/0.4.23/chrono/
+    let time_zone = FixedOffset::east_opt(-5 * 3600).unwrap();
     let time = Utc::now().with_timezone(&time_zone);
-    let day = time.day();
-    println!("Today day's challenge {day}");
-    Some(day as u8)
+    let time_zone = FixedOffset::east_opt(-5 * 3600).unwrap();
+
+    let start = time_zone.with_ymd_and_hms(2022, 12, 1, 0, 0, 0).unwrap();
+    let end = time_zone.with_ymd_and_hms(2022, 12, 25, 0, 0, 0).unwrap();
+
+    if start <= time && time <= end {
+        let day = time.day();
+        println!("Today day's challenge: {day}");
+        Some(day as u8)
+    } else {
+        None
+    }
 }
 
 const PROBLEM_NAME_TMPL: &str = "{PROBLEM_NAME}";
