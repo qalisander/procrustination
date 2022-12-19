@@ -7,12 +7,16 @@ type Ans1 = usize;
 type Ans2 = usize;
 
 pub fn calorie_counting_1(input: &str) -> Ans1 {
-    let parsed = parse(input);
-    todo!("1")
+    let parsed = parse(input).0;
+    parsed
+        .iter()
+        .map(|elf| elf.iter().sum())
+        .max()
+        .expect("Input is empty!")
 }
 
 pub fn calorie_counting_2(input: &str) -> Ans2 {
-    let parsed = parse(input);
+    let parsed = parse(input).0;
     todo!("2")
 }
 
@@ -70,14 +74,14 @@ mod tests {
 
     #[test]
     fn test_1() {
-        let expected = todo!();
+        let expected = 24000;
         let ans = calorie_counting_1(INPUT.trim_start());
         assert_eq!(ans, expected);
     }
 
     #[test]
     fn test_2() {
-        let expected = todo!();
+        let expected = 45000;
         let ans = calorie_counting_2(INPUT.trim_start());
         assert_eq!(ans, expected);
     }
