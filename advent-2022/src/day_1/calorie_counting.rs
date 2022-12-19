@@ -17,7 +17,13 @@ pub fn calorie_counting_1(input: &str) -> Ans1 {
 
 pub fn calorie_counting_2(input: &str) -> Ans2 {
     let parsed = parse(input).0;
-    todo!("2")
+    parsed
+        .iter()
+        .map(|elf| elf.iter().sum::<usize>())
+        .sorted()
+        .rev()
+        .take(3)
+        .sum()
 }
 
 #[derive(Debug)]
@@ -29,7 +35,11 @@ fn parse(str: &str) -> Parsed {
         .peekable()
         .batching(|iter| {
             let vec = iter.map_while(|l| l.parse::<usize>().ok()).collect_vec();
-            iter.peek().map(|_| vec)
+            if vec.is_empty() && iter.peek().is_none() {
+                None
+            } else {
+                Some(vec)
+            }
         })
         .filter(|vec| !vec.is_empty())
         .collect_vec();
