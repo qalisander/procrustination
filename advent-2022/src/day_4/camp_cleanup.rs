@@ -1,8 +1,7 @@
-use advent_2022_rs::get_file_str;
+use advent_2022_rs::get_input_str;
 use itertools::Itertools;
-use std::str::FromStr;
 
-pub fn camp_cleanup(input: &str) -> usize {
+pub fn camp_cleanup_1(input: &str) -> usize {
     let parsed = parse(input);
     parsed
         .iter()
@@ -63,8 +62,8 @@ fn parse(str: &str) -> Vec<((i32, i32), (i32, i32))> {
 }
 
 fn main() {
-    let str = get_file_str("day_4/input");
-    let ans = camp_cleanup(&str);
+    let str = get_input_str(file!());
+    let ans = camp_cleanup_1(&str);
     println!("Part 1: {ans}");
     let ans = camp_cleanup_2(&str);
     println!("Part 2: {ans}");
@@ -79,7 +78,7 @@ fn camp_cleanup_test() {
 6-6,4-6
 2-6,4-8"#;
     dbg!(input);
-    let ans = camp_cleanup(input);
+    let ans = camp_cleanup_1(input);
     assert_eq!(ans, 2);
     let ans = camp_cleanup_2(input);
     assert_eq!(ans, 4)
