@@ -1,4 +1,4 @@
-use std::ops::Deref;
+use std::ops::{Add, Deref};
 use std::path::Path;
 use chrono::prelude::*;
 use reqwest::header::COOKIE;
@@ -12,35 +12,46 @@ use tokio::io::AsyncWriteExt;
 // TODO: #q try to use clap here
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // TODO: create struct. Associated const
     let problem_num = get_problem_from_args()
         .or_else(get_problem_from_input)
         .or_else(get_problem_from_date)
         .ok_or("Unable to get problem number!")?;
-
     let cookie = fs::read_to_string("cookie").await?;
 
     let input: Url = format!("https://adventofcode.com/2022/day/{problem_num}/input").parse()?;
     let input_res = Client::new().get(input).header(COOKIE, &cookie).send().await?;
 
-    let path = format!("./src/day_{problem_num}/input.txt");
-    let path = Path::new(&path);
-    fs::create_dir_all(path.parent().unwrap()).await?;
-    fs::write(path, input_res.text().await?).await?;
+    let dir_path = format!("./src/day_{problem_num}");
+    let dir_path = Path::new(&dir_path);
+    fs::create_dir_all(dir_path).await?;
+    fs::write(dir_path.join(Path::new("input")), input_res.text().await?).await?;
 
+    let problem_name = get_problem_name(problem_num, &cookie).await?;
+    let problem_file = problem_name.clone() + ".rs";
+    let path = dir_path.join(Path::new(&problem_file));
+    if path.exists() {
+        println!("File '{problem_file}' already exists")
+    } else {
+        fs::write(path, CODE_TMPL.replace(PROBLEM_NAME_TMPL, &problem_name)).await?;
+    }
+    let file = file!();
+    dbg!(file);
+
+    Ok(())
+}
+
+async fn get_problem_name(problem_num: u8, cookie: &str) -> Result<String, Box<dyn std::error::Error>>{
     let html: Url = format!("https://adventofcode.com/2022/day/{problem_num}").parse()?;
-    let html_res = Client::new().get(html).header(COOKIE, &cookie).send().await?;
+    let html_res = Client::new().get(html).header(COOKIE, cookie).send().await?;
     let document = html_res.text().await?;
     let html = Html::parse_document(&document);
 
     let selector = Selector::parse("h2").unwrap();
     let txt = html.select(&selector).next().unwrap().html();
-    dbg!(&txt);
     let (_, txt) = txt.split_once(":").expect("String ':' is a part of h2 tag");
-    dbg!(&txt);
     let (txt, _) = txt.split_once("---").expect("String '---' is a part of h2 tag");
-    let file_name = txt.trim().to_lowercase();
-
-    Ok(())
+    Ok(txt.trim().to_lowercase().replace(" ", "_"))
 }
 
 fn get_problem_from_args() -> Option<u8> {
@@ -62,3 +73,47 @@ fn get_problem_from_date() -> Option<u8> {
     println!("Today day's challenge {day}");
     Some(day as u8)
 }
+
+const PROBLEM_NAME_TMPL: &str = "{PROBLEM_NAME}";
+const CODE_TMPL: &str = r##"
+use advent_2022_rs::get_input_str;
+use itertools::Itertools;
+
+pub fn {PROBLEM_NAME}_1(input: &str) -> usize {
+    let parsed = parse(input);
+    todo!("1")
+}
+
+pub fn {PROBLEM_NAME}_2(input: &str) -> usize {
+    let parsed = parse(input);
+    todo!("2")
+}
+
+struct Parsed;
+
+fn parse(str: &str) -> Parsed {
+    todo!("Parse")
+}
+
+fn main() {
+    let str = get_input_str(file!());
+    let ans = {PROBLEM_NAME}_1(&str);
+    println!("Part 1: {ans}");
+    let ans = {PROBLEM_NAME}_2(&str);
+    println!("Part 2: {ans}");
+}
+
+#[test]
+fn {PROBLEM_NAME}_1_test() {
+    let input = r#""#;
+let ans = {PROBLEM_NAME}_1(input);
+todo!("Test 1");
+}
+
+#[test]
+fn {PROBLEM_NAME}_2_test() {
+let input = r#""#;
+let ans = {PROBLEM_NAME}_2(input);
+todo!("Test 2")
+}
+"##;
