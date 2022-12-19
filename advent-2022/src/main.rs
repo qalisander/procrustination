@@ -16,9 +16,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .ok_or("Unable to get problem number!")?;
     let cookie = fs::read_to_string("cookie").await?;
 
-    let input: Url = format!("https://adventofcode.com/2022/day/{problem_num}/input").parse()?;
+    let input_link: Url = format!("https://adventofcode.com/2022/day/{problem_num}/input").parse()?;
     let input_res = Client::new()
-        .get(input)
+        .get(input_link)
         .header(COOKIE, &cookie)
         .send()
         .await?;
@@ -34,7 +34,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     if path.exists() {
         println!("File '{problem_file}' already exists")
     } else {
-        fs::write(path, CODE_TMPL.replace(PROBLEM_NAME_TMPL, &problem_name)).await?;
+        let link: Url = format!("https://adventofcode.com/2022/day/{problem_num}").parse()?;
+        let tmpl = CODE_TMPL
+            .replace(PROBLEM_NAME_TMPL, &problem_name)
+            .replace(PROBLEM_LINK_TMPL, link.as_ref());
+        fs::write(path, tmpl).await?;
     }
 
     let mut file = OpenOptions::new().append(true).open("Cargo.toml").await?;
@@ -101,9 +105,12 @@ fn get_problem_from_date() -> Option<u8> {
 }
 
 const PROBLEM_NAME_TMPL: &str = "{PROBLEM_NAME}";
+const PROBLEM_LINK_TMPL: &str = "{PROBLEM_LINK}";
 const CODE_TMPL: &str = r##"
 use advent_2022_rs::get_input_str;
 use itertools::Itertools;
+
+// {PROBLEM_LINK}
 
 type Ans1 = todo!();
 type Ans2 = todo!();
