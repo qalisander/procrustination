@@ -144,25 +144,26 @@ fn main() {
 mod tests {
     use crate::{parse, {PROBLEM_NAME}_1, {PROBLEM_NAME}_2};
 
-    const INPUT: &str = r#""#;
+    const INPUT: &str = r#"
+    "#;
 
     #[test]
     fn parse_test() {
-        let parsed = parse(INPUT);
+        let parsed = parse(INPUT.trim_start());
         dbg!(&parsed);
     }
 
     #[test]
     fn test_1() {
         let expected = todo!();
-        let ans = {PROBLEM_NAME}_1(INPUT);
+        let ans = {PROBLEM_NAME}_1(INPUT.trim_start());
         assert_eq!(ans, expected);
     }
 
     #[test]
     fn test_2() {
         let expected = todo!();
-        let ans = {PROBLEM_NAME}_2(INPUT);
+        let ans = {PROBLEM_NAME}_2(INPUT.trim_start());
         assert_eq!(ans, expected);
     }
 }
