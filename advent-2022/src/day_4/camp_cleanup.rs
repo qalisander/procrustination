@@ -53,10 +53,10 @@ fn parse(str: &str) -> Vec<((i32, i32), (i32, i32))> {
                         .map(str::parse)
                         .filter_map(Result::ok)
                         .collect_tuple::<(_, _)>()
-                        .expect("Parse error!")
+                        .expect("Split by '-'")
                 })
                 .collect_tuple::<(_, _)>()
-                .expect("Parse error!")
+                .expect("Split by ','")
         })
         .collect_vec()
 }

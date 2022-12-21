@@ -1,10 +1,12 @@
+use std::any::Any;
 use advent_2022_rs::get_input_str;
 use itertools::Itertools;
 
 // https://adventofcode.com/2022/day/1
 
-type Ans1 = usize;
-type Ans2 = usize;
+type Ans = u32;
+type Ans1 = Ans;
+type Ans2 = Ans;
 
 pub fn calorie_counting_1(input: &str) -> Ans1 {
     let parsed = parse(input).0;
@@ -12,14 +14,14 @@ pub fn calorie_counting_1(input: &str) -> Ans1 {
         .iter()
         .map(|elf| elf.iter().sum())
         .max()
-        .expect("Input is empty!")
+        .expect("Input is not empty")
 }
 
 pub fn calorie_counting_2(input: &str) -> Ans2 {
     let parsed = parse(input).0;
     parsed
         .iter()
-        .map(|elf| elf.iter().sum::<usize>())
+        .map(|elf| elf.iter().sum::<Ans>())
         .sorted()
         .rev()
         .take(3)
@@ -27,14 +29,14 @@ pub fn calorie_counting_2(input: &str) -> Ans2 {
 }
 
 #[derive(Debug)]
-struct Parsed(Vec<Vec<usize>>);
+struct Parsed(Vec<Vec<Ans>>);
 
 fn parse(str: &str) -> Parsed {
     let vec_vec = str
         .lines()
         .peekable()
         .batching(|iter| {
-            let vec = iter.map_while(|l| l.parse::<usize>().ok()).collect_vec();
+            let vec = iter.map_while(|l| l.parse::<Ans>().ok()).collect_vec();
             if vec.is_empty() && iter.peek().is_none() {
                 None
             } else {
@@ -78,21 +80,21 @@ mod tests {
 
     #[test]
     fn parse_test() {
-        let parsed = parse(INPUT.trim_start());
+        let parsed = parse(INPUT.trim());
         dbg!(&parsed);
     }
 
     #[test]
     fn test_1() {
         let expected = 24000;
-        let ans = calorie_counting_1(INPUT.trim_start());
+        let ans = calorie_counting_1(INPUT.trim());
         assert_eq!(ans, expected);
     }
 
     #[test]
     fn test_2() {
         let expected = 45000;
-        let ans = calorie_counting_2(INPUT.trim_start());
+        let ans = calorie_counting_2(INPUT.trim());
         assert_eq!(ans, expected);
     }
 }

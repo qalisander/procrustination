@@ -68,10 +68,10 @@ async fn get_problem_name(
 
     let selector = Selector::parse("h2").unwrap();
     let txt = html.select(&selector).next().unwrap().html();
-    let (_, txt) = txt.split_once(":").expect("String ':' is a part of h2 tag");
+    let (_, txt) = txt.split_once(":").expect("':' is a part of h2 tag");
     let (txt, _) = txt
         .split_once("---")
-        .expect("String '---' is a part of h2 tag");
+        .expect("'---' is a part of h2 tag");
     Ok(txt.trim().to_lowercase().replace(" ", "_"))
 }
 
@@ -149,21 +149,21 @@ mod tests {
 
     #[test]
     fn parse_test() {
-        let parsed = parse(INPUT.trim_start());
+        let parsed = parse(INPUT.trim());
         dbg!(&parsed);
     }
 
     #[test]
     fn test_1() {
         let expected = todo!();
-        let ans = {PROBLEM_NAME}_1(INPUT.trim_start());
+        let ans = {PROBLEM_NAME}_1(INPUT.trim());
         assert_eq!(ans, expected);
     }
 
     #[test]
     fn test_2() {
         let expected = todo!();
-        let ans = {PROBLEM_NAME}_2(INPUT.trim_start());
+        let ans = {PROBLEM_NAME}_2(INPUT.trim());
         assert_eq!(ans, expected);
     }
 }
