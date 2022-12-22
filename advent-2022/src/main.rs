@@ -142,7 +142,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use crate::{parse, {PROBLEM_NAME}_1, {PROBLEM_NAME}_2};
+    use super::*;
 
     const INPUT: &str = r#"
     "#;
