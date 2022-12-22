@@ -9,6 +9,7 @@ use tokio::io::AsyncWriteExt;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // TOSO: fetch problem from <pre><code>
     // TODO: create struct. Use clap
     let problem_num = get_problem_from_args()
         .or_else(get_problem_from_input)
@@ -16,7 +17,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .ok_or("Unable to get problem number!")?;
     let cookie = fs::read_to_string("cookie").await?;
 
-    let input_link: Url = format!("https://adventofcode.com/2022/day/{problem_num}/input").parse()?;
+    let input_link: Url =
+        format!("https://adventofcode.com/2022/day/{problem_num}/input").parse()?;
     let input_res = Client::new()
         .get(input_link)
         .header(COOKIE, &cookie)
@@ -68,10 +70,8 @@ async fn get_problem_name(
 
     let selector = Selector::parse("h2").unwrap();
     let txt = html.select(&selector).next().unwrap().html();
-    let (_, txt) = txt.split_once(":").expect("':' is a part of h2 tag");
-    let (txt, _) = txt
-        .split_once("---")
-        .expect("'---' is a part of h2 tag");
+    let (_, txt) = txt.split_once(":").expect("':' inside h2");
+    let (txt, _) = txt.split_once("---").expect("'---' inside h2");
     Ok(txt.trim().to_lowercase().replace(" ", "_"))
 }
 
