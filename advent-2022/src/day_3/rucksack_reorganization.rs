@@ -2,6 +2,7 @@ extern crate core;
 
 use advent_2022_rs::get_input_str;
 use itertools::Itertools;
+use std::collections::HashSet;
 
 // https://adventofcode.com/2022/day/3
 
@@ -13,7 +14,15 @@ pub fn rucksack_reorganization_1(input: &str) -> Ans1 {
     let parsed = parse(input);
     parsed
         .into_iter()
-        .map(|str| str.chars().duplicates().next().expect("Only one duplicate"))
+        .map(|str| {
+            let set0: HashSet<char> = str.0.chars().collect();
+            let set1: HashSet<char> = str.1.chars().collect();
+            *set0
+                .intersection(&set1)
+                .into_iter()
+                .next()
+                .expect("One common char")
+        })
         .map(get_score)
         .sum()
 }
@@ -31,10 +40,16 @@ pub fn rucksack_reorganization_2(input: &str) -> Ans2 {
     todo!("2")
 }
 
-type Parsed<'a> = Vec<&'a str>;
+type Parsed<'a> = Vec<(&'a str, &'a str)>;
 
 fn parse(str: &str) -> Parsed {
-    str.lines().collect_vec()
+    str.lines()
+        .map(|l| {
+            let count = l.chars().count();
+            let split_indx = l.char_indices().nth(count / 2).unwrap().0;
+            l.split_at(split_indx)
+        })
+        .collect_vec()
 }
 
 fn main() {
