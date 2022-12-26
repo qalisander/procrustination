@@ -44,3 +44,7 @@ path = "src/day_3/rucksack_reorganization.rs"
 [[bin]]
 name = "day_23"
 path = "src/day_23/unstable_diffusion.rs"
+
+[[bin]]
+name = "day_25"
+path = "src/day_25/full_of_hot_air.rs"
