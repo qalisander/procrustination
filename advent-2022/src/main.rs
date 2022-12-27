@@ -40,17 +40,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let tmpl = CODE_TMPL
             .replace(PROBLEM_NAME_TMPL, &problem_name)
             .replace(PROBLEM_LINK_TMPL, link.as_ref());
-        fs::write(path, tmpl).await?;
+        fs::write(&path, tmpl).await?;
     }
 
     let mut file = OpenOptions::new().append(true).open("Cargo.toml").await?;
-    file.write_all(
-        TOML_TMPL
-            .replace(PROBLEM_NAME_TMPL, &problem_name)
-            .replace(PROBLEM_NUM_TMPL, &problem_num.to_string())
-            .as_bytes(),
-    )
-    .await?;
+    if path.exists() {
+        file.write_all(
+            TOML_TMPL
+                .replace(PROBLEM_NAME_TMPL, &problem_name)
+                .replace(PROBLEM_NUM_TMPL, &problem_num.to_string())
+                .as_bytes(),
+        )
+        .await?;
+    }
 
     Ok(())
 }

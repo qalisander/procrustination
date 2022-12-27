@@ -9,11 +9,19 @@ type Ans1 = String;
 type Ans2 = String;
 
 pub fn supply_stacks_1(input: &str) -> Ans1 {
-    let Parsed{mut crates, commands} = parse(input);
-    for cmd in commands {
-        cmd
+    let Parsed {
+        mut crates,
+        commands,
+    } = parse(input);
+    for Cmd { amount, from, to } in commands {
+        let start_indx = crates[from].len() - amount;
+        let removed = crates[from].drain(start_indx..).rev().collect_vec();
+        crates[to].extend(removed)
     }
-    todo!("1")
+    crates
+        .iter()
+        .map(|column| column.last().unwrap_or(&' '))
+        .join("")
 }
 
 pub fn supply_stacks_2(input: &str) -> Ans2 {
@@ -44,7 +52,7 @@ fn parse(str: &str) -> Parsed {
     let mut lines = str.lines().peekable();
     let raw_crates = lines
         .peeking_take_while(|l| !matches!(l.chars().nth(1), Some(ch) if ch.is_numeric()))
-        .map(|l| l.chars().collect_vec()) // TODO: why it doesnt work and..
+        .map(|l| l.chars().collect_vec())
         .collect_vec();
     let column_count: usize = lines
         .next()
@@ -60,11 +68,12 @@ fn parse(str: &str) -> Parsed {
             raw_crates
                 .iter()
                 .rev()
-                .flat_map(|raw_chars| raw_chars.get(raw_i)),
+                .flat_map(|raw_chars| raw_chars.get(raw_i))
+                .filter(|ch| ch.is_alphanumeric()),
         )
     }
 
-    let re = Regex::new(r"move (\d) from (\d) to (\d)").unwrap();
+    let re = Regex::new(r"move (\d+) from (\d+) to (\d+)").unwrap();
     let commands = lines
         .flat_map(|line| {
             let cap = re.captures(line)?;
@@ -73,6 +82,11 @@ fn parse(str: &str) -> Parsed {
                 from: cap[2].parse().ok()?,
                 to: cap[3].parse().ok()?,
             })
+        })
+        .map(|cmd| Cmd {
+            amount: cmd.amount,
+            from: cmd.from - 1, // NOTE: Zero based index
+            to: cmd.to - 1,
         })
         .collect_vec();
 
