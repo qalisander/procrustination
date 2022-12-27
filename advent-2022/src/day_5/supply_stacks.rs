@@ -25,8 +25,19 @@ pub fn supply_stacks_1(input: &str) -> Ans1 {
 }
 
 pub fn supply_stacks_2(input: &str) -> Ans2 {
-    let parsed = parse(input);
-    todo!("2")
+    let Parsed {
+        mut crates,
+        commands,
+    } = parse(input);
+    for Cmd { amount, from, to } in commands {
+        let start_indx = crates[from].len() - amount;
+        let removed = crates[from].drain(start_indx..).collect_vec();
+        crates[to].extend(removed)
+    }
+    crates
+        .iter()
+        .map(|column| column.last().unwrap_or(&' '))
+        .join("")
 }
 
 #[derive(Debug)]
