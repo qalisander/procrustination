@@ -53,3 +53,7 @@ path = "src/day_25/full_of_hot_air.rs"
 [[bin]]
 name = "day_5"
 path = "src/day_5/supply_stacks.rs"
+
+[[bin]]
+name = "day_6"
+path = "src/day_6/tuning_trouble.rs"
