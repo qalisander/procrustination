@@ -33,8 +33,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let problem_name = get_problem_name(problem_num, &cookie).await?;
     let problem_file = problem_name.clone() + ".rs";
     let path = dir_path.join(Path::new(&problem_file));
-    let path_exist = path.exists();
-    if path_exist {
+    let problem_exist = path.exists();
+    if problem_exist {
         println!("File '{problem_file}' already exists")
     } else {
         let link: Url = format!("https://adventofcode.com/2022/day/{problem_num}").parse()?;
@@ -45,7 +45,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let mut file = OpenOptions::new().append(true).open("Cargo.toml").await?;
-    if path_exist {
+    if !problem_exist {
         file.write_all(
             TOML_TMPL
                 .replace(PROBLEM_NAME_TMPL, &problem_name)
