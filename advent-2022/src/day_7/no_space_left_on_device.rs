@@ -1,27 +1,92 @@
-use std::iter;
+extern crate core;
+
 use advent_2022_rs::get_input_str;
 use anyhow::{anyhow, Error, Result};
+use derive_more::{Add, AddAssign, Deref, Display, FromStr};
 use itertools::Itertools;
-use derive_more::FromStr;
+use std::collections::HashMap;
+use std::iter::Sum;
+use std::ops::Deref;
+use std::str::FromStr;
 
 // https://adventofcode.com/2022/day/7
 
 type Ans1 = u32;
 type Ans2 = u32;
 
-//To begin, find all of the directories with a total size of at most 100000,
+// To begin, find all of the directories with a total size of at most 100000,
 // then calculate the sum of their total sizes.
 pub fn no_space_left_on_device_1(input: &str) -> Ans1 {
-    let parsed = parse(input).expect("Parsed input");
-    todo!("1")
+    let parsed = parse(input);
+
+    const MAX_SIZE: Ans1 = 100_000;
+    let mut ans: Ans1 = 0;
+    let mut dir_stack = vec![];
+    let mut fs_stack: Vec<HashMap<Name, Option<Size>>> = vec![];
+    for x in parsed.iter() {
+        match x {
+            Cmd::Cd(name) => match name.deref() {
+                ".." => {
+                    let name = dir_stack.pop().expect("Parent file exists");
+                    let sum = fs_stack
+                        .pop()
+                        .expect("Parent file exists")
+                        .into_values()
+                        .fold(Some(Size(0)), |acc, sz| Some(acc? + sz?));
+                    let last = fs_stack.last_mut().expect("fs_stack not empty");
+                    let size = last
+                        .get_mut(&name)
+                        .unwrap_or_else(|| panic!("Obj with '{name}' exist"));
+
+                    match sum {
+                        None => {
+                            println!("Sum wasn't calculated for dir '{name}")
+                        }
+                        Some(sum) => {
+                            if sum.0 <= MAX_SIZE {
+                                ans += sum.0;
+                            }
+                            size.insert(sum);
+                        }
+                    }
+                }
+                "/" => {
+                    dir_stack.drain(..);
+                    fs_stack.drain(..);
+                }
+                _ => {
+                    dir_stack.push(name.clone());
+                }
+            },
+            Cmd::Ls(ls) => fs_stack.push(HashMap::from_iter(ls.iter().map(|obj| match obj {
+                FsObj::File(nm, sz) => (nm.clone(), Some(*sz)),
+                FsObj::Dir(nm) => (nm.clone(), None),
+            }))),
+        }
+    }
+    ans
 }
 
 pub fn no_space_left_on_device_2(input: &str) -> Ans2 {
-    let parsed = parse(input).expect("Parsed input");
+    let parsed = parse(input);
     todo!("2")
 }
 
-type Parsed = Result<Vec<Cmd>>;
+#[derive(Debug, Deref)]
+struct Parsed(Vec<Cmd>);
+
+impl FromStr for Parsed {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        Ok(Parsed(
+            s.split('$')
+                .filter(|s| !s.trim().is_empty())
+                .map(str::parse)
+                .try_collect()?,
+        ))
+    }
+}
 
 #[derive(Debug)]
 enum Cmd {
@@ -29,66 +94,74 @@ enum Cmd {
     Ls(Vec<FsObj>),
 }
 
-#[derive(Debug)]
+impl FromStr for Cmd {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        let mut lines = s.trim().lines();
+        let cmd_str = lines.next().ok_or_else(|| anyhow!("Empty cmd string"))?;
+        let mut cmd = cmd_str.split_whitespace();
+        let cmd: Cmd = match cmd.next() {
+            Some("ls") => {
+                let ls_out = lines.map(str::parse).try_collect()?;
+                Cmd::Ls(ls_out)
+            }
+            Some("cd") => {
+                let name = cmd
+                    .next()
+                    .ok_or_else(|| anyhow!("Invalid cd '{cmd_str}'"))?;
+                Cmd::Cd(name.parse()?)
+            }
+            _ => return Err(anyhow!("Invalid cmd line '{cmd_str}'")),
+        };
+        Ok(cmd)
+    }
+}
+
+#[derive(Debug, Clone)]
 enum FsObj {
     File(Name, Size),
     Dir(Name),
 }
 
-type Size = u32;
+impl FromStr for FsObj {
+    type Err = Error;
 
-#[derive(Debug, FromStr)]
+    fn from_str(s: &str) -> Result<Self> {
+        let (dir_or_size, name): (&str, &str) = s
+            .split_whitespace()
+            .collect_tuple()
+            .ok_or_else(|| anyhow!("Invalid fs object '{s}'"))?;
+
+        match dir_or_size {
+            "dir" => Ok(FsObj::Dir(name.parse()?)),
+            size => Ok(FsObj::File(name.parse()?, size.parse()?)),
+        }
+    }
+}
+
+#[derive(Debug, FromStr, Deref, Clone, Copy, Add)]
+struct Size(u32);
+
+impl From<u32> for Size {
+    fn from(num: u32) -> Self {
+        Self(num)
+    }
+}
+
+#[derive(Debug, FromStr, Clone, Eq, PartialEq, Hash, Display)]
 struct Name(String);
 
+impl Deref for Name {
+    type Target = str;
 
-// TODO: cmd from str
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 fn parse(str: &str) -> Parsed {
-    str.lines()
-        .peekable()
-        .batching(|lines| {
-            let cmd_str = lines.next()?;
-            // TODO: create separate method parse_cmd
-            let mut cmd = cmd_str.split_whitespace();
-            let Some("$") = cmd.next() else {
-                return Some(Err(anyhow!("Invalid cmd line '{cmd_str}'")))
-            };
-
-            let cmd: Cmd = match cmd.next() {
-                Some("ls") => {
-                    let vec = lines
-                        .peeking_take_while(|line| !line.starts_with("$"))
-                        .collect_vec();
-                    let result = vec
-                        .iter()
-                        .map(|line_str| {
-                            let (dir_or_size, name): (&str, &str) = line_str
-                                .split_whitespace()
-                                .collect_tuple()
-                                .ok_or_else(|| anyhow!("Invalid fs object '{line_str}'"))?;
-
-                            match dir_or_size {
-                                "dir" => Ok(FsObj::Dir(name.parse()?)),
-                                size => Ok(FsObj::File(name.parse()?, size.parse()?)),
-                            }
-                        })
-                        .try_collect::<_, Vec<_>, Error>();
-                    match result {
-                        Ok(output) => Cmd::Ls(output),
-                        Err(err) => return Some(Err(err)),
-                    }
-                }
-                Some("cd") => {
-                    if let Some(str) = cmd.next() {
-                        Cmd::Cd(Name(str.to_string()))
-                    } else {
-                        return Some(Err(anyhow!("Invalid cd '{cmd_str}'")));
-                    }
-                }
-                _ => return Some(Err(anyhow!("Invalid cmd line '{cmd_str}'"))),
-            };
-            Some(Ok(cmd))
-        })
-        .try_collect()
+    str.parse().expect("Parsed value")
 }
 
 fn main() {
@@ -139,7 +212,7 @@ $ ls
 
     #[test]
     fn parse_test() {
-        let parsed = parse(get_input()).expect("Parsed input");
+        let parsed = parse(get_input());
         dbg!(&parsed);
     }
 

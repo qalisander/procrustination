@@ -1,3 +1,4 @@
+use derive_more::Deref;
 use advent_2022_rs::get_input_str;
 use itertools::Itertools;
 
@@ -25,10 +26,11 @@ pub fn tuning_trouble_2(input: &str) -> Ans2 {
     get_start_indx(input, 14).expect("End of packet is found")
 }
 
-type Parsed = Vec<char>;
+#[derive(Deref, Debug)]
+struct Parsed(Vec<char>);
 
 fn parse(str: &str) -> Parsed {
-    str.chars().collect_vec()
+    Parsed(str.chars().collect_vec())
 }
 
 fn main() {
