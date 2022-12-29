@@ -57,3 +57,7 @@ path = "src/day_5/supply_stacks.rs"
 [[bin]]
 name = "day_6"
 path = "src/day_6/tuning_trouble.rs"
+
+[[bin]]
+name = "day_7"
+path = "src/day_7/no_space_left_on_device.rs"
