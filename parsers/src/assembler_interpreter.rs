@@ -152,6 +152,8 @@ enum AsmErr {
     NonExistentLabel(Lbl),
     #[error("Invalid return 'ret' from call!")]
     InvalidRet,
+    #[error(transparent)]
+    FmtErr(#[from] std::fmt::Error),
 }
 
 #[derive(Debug)]
@@ -235,7 +237,7 @@ impl AssemblerInterpreter {
         let mut output = String::new();
         let mut prev_ord = None;
         let mut i: usize = 0;
-        return loop {
+        loop {
             if i >= self.instructions.len() {
                 break Ok(None);
             }
@@ -336,12 +338,14 @@ impl AssemblerInterpreter {
                         })
                         .try_collect()?;
                     let msg = args.join("");
-                    write!(&mut output, "{msg}").unwrap();
+//                    let result = File::open("src/file.txt").into()?;
+                    write!(&mut output, "{msg}")?;
                 }
+
                 End => break Ok(Some(output)),
             }
             i += 1;
-        };
+        }
     }
 
     fn scan(input: &str) -> Vec<Result<Instr, AsmErr>> {
