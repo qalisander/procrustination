@@ -2,11 +2,10 @@ extern crate core;
 
 use advent_2022_rs::get_input_str;
 use anyhow::{anyhow, Error, Result};
-use chrono::format::Item;
-use derive_more::{Add, AddAssign, Deref, DerefMut, Display, FromStr, IntoIterator};
+use derive_more::{Add, Deref, Display, FromStr, IntoIterator};
 use itertools::Itertools;
 use std::borrow::Borrow;
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap};
 use std::iter::Sum;
 use std::ops::Deref;
 use std::str::FromStr;
@@ -20,19 +19,19 @@ type Ans2 = u32;
 // To begin, find all of the directories with a total size of at most 100000,
 // then calculate the sum of their total sizes.
 pub fn no_space_left_on_device_1(input: &str) -> Ans1 {
+    const MAX_SIZE: Ans1 = 100_000;
+    let mut deletion_size = 0;
     let mut cmds = parse(input).into_iter();
-    if let Some(Cmd::Cd(name)) = cmds.next() {
-        if &*name == "/" {
-            let mut total_size = 0;
-            calculate_size_rec(&mut cmds, &mut total_size);
-            return total_size;
+    enter_root(&mut cmds);
+    calculate_size_rec(&mut cmds, &mut |size| {
+        if size.0 <= MAX_SIZE {
+            deletion_size += size.0;
         }
-    }
-    panic!("Invalid begin");
+    });
+    return deletion_size;
 }
 
-fn calculate_size_rec(cmds: &mut impl Iterator<Item = Cmd>, deletion_size: &mut u32) -> Size {
-    const MAX_SIZE: Ans1 = 100_000;
+fn calculate_size_rec(cmds: &mut impl Iterator<Item = Cmd>, scan: &mut impl FnMut(Size)) -> Size {
     let mut fs_objs: HashMap<Name, Option<Size>> = HashMap::new();
     while let Some(cmd) = cmds.next() {
         match cmd {
@@ -42,10 +41,8 @@ fn calculate_size_rec(cmds: &mut impl Iterator<Item = Cmd>, deletion_size: &mut 
                     let sum = fs_objs
                         .get_mut(&name)
                         .unwrap_or_else(|| panic!("Dir '{name}' should exist in fs_objs"));
-                    let size = calculate_size_rec(cmds, deletion_size);
-                    if size.0 <= MAX_SIZE {
-                        *deletion_size += size.0;
-                    }
+                    let size = calculate_size_rec(cmds, scan);
+                    scan(size);
                     sum.insert(size);
                 }
             },
@@ -63,9 +60,43 @@ fn calculate_size_rec(cmds: &mut impl Iterator<Item = Cmd>, deletion_size: &mut 
         .expect("Sum is known")
 }
 
+fn enter_root(cmds: &mut impl Iterator<Item = Cmd>) {
+    if let Some(Cmd::Cd(name)) = cmds.next() {
+        if &*name == "/" {
+            return;
+        }
+    }
+    panic!("Invalid begin");
+}
+
 pub fn no_space_left_on_device_2(input: &str) -> Ans2 {
-    let parsed = parse(input);
-    todo!("2")
+    const TOTAL_DISC_SPACE: u32 = 70_000_000;
+    const MIN_UNUSED_SPACE: u32 = 30_000_000;
+    let mut cmds = parse(input).into_iter();
+    enter_root(&mut cmds);
+    let total_size: u32 = calculate_size_rec(&mut cmds, &mut |_| {}).into();
+
+
+    let mut cmds = parse(input).into_iter();
+    enter_root(&mut cmds);
+    let free_space = TOTAL_DISC_SPACE - total_size;
+    let space_to_free = MIN_UNUSED_SPACE - free_space;
+    let mut delete_dir_size = None;
+    calculate_size_rec(&mut cmds, &mut |size| {
+        match &mut delete_dir_size {
+            None => {
+                if space_to_free <= *size {
+                    delete_dir_size = Some(*size)
+                }
+            }
+            Some(delete_dir_size) => {
+                if space_to_free <= *size && *size < *delete_dir_size{
+                    *delete_dir_size = *size
+                }
+            }
+        };
+    });
+    delete_dir_size.expect("Dir to delete should be found")
 }
 
 #[derive(Debug, Deref, IntoIterator)]
@@ -169,7 +200,7 @@ fn main() {
     let ans = no_space_left_on_device_1(&str);
     println!("Part 1: {ans}"); // 1432936
     let ans = no_space_left_on_device_2(&str);
-    println!("Part 2: {ans}");
+    println!("Part 2: {ans}"); // 272298
 }
 
 #[cfg(test)]
