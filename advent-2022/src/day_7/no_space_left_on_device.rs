@@ -2,12 +2,15 @@ extern crate core;
 
 use advent_2022_rs::get_input_str;
 use anyhow::{anyhow, Error, Result};
-use derive_more::{Add, AddAssign, Deref, Display, FromStr};
+use chrono::format::Item;
+use derive_more::{Add, AddAssign, Deref, DerefMut, Display, FromStr, IntoIterator};
 use itertools::Itertools;
-use std::collections::HashMap;
+use std::borrow::Borrow;
+use std::collections::{HashMap, HashSet};
 use std::iter::Sum;
 use std::ops::Deref;
 use std::str::FromStr;
+use std::string::ToString;
 
 // https://adventofcode.com/2022/day/7
 
@@ -17,54 +20,47 @@ type Ans2 = u32;
 // To begin, find all of the directories with a total size of at most 100000,
 // then calculate the sum of their total sizes.
 pub fn no_space_left_on_device_1(input: &str) -> Ans1 {
-    let parsed = parse(input);
-
-    const MAX_SIZE: Ans1 = 100_000;
-    let mut ans: Ans1 = 0;
-    let mut dir_stack = vec![];
-    let mut fs_stack: Vec<HashMap<Name, Option<Size>>> = vec![];
-    for x in parsed.iter() {
-        match x {
-            Cmd::Cd(name) => match name.deref() {
-                ".." => {
-                    let name = dir_stack.pop().expect("Parent file exists");
-                    let sum = fs_stack
-                        .pop()
-                        .expect("Parent file exists")
-                        .into_values()
-                        .fold(Some(Size(0)), |acc, sz| Some(acc? + sz?));
-                    let last = fs_stack.last_mut().expect("fs_stack not empty");
-                    let size = last
-                        .get_mut(&name)
-                        .unwrap_or_else(|| panic!("Obj with '{name}' exist"));
-
-                    match sum {
-                        None => {
-                            println!("Sum wasn't calculated for dir '{name}")
-                        }
-                        Some(sum) => {
-                            if sum.0 <= MAX_SIZE {
-                                ans += sum.0;
-                            }
-                            size.insert(sum);
-                        }
-                    }
-                }
-                "/" => {
-                    dir_stack.drain(..);
-                    fs_stack.drain(..);
-                }
-                _ => {
-                    dir_stack.push(name.clone());
-                }
-            },
-            Cmd::Ls(ls) => fs_stack.push(HashMap::from_iter(ls.iter().map(|obj| match obj {
-                FsObj::File(nm, sz) => (nm.clone(), Some(*sz)),
-                FsObj::Dir(nm) => (nm.clone(), None),
-            }))),
+    let mut cmds = parse(input).into_iter();
+    if let Some(Cmd::Cd(name)) = cmds.next() {
+        if &*name == "/" {
+            let mut total_size = 0;
+            calculate_size_rec(&mut cmds, &mut total_size);
+            return total_size;
         }
     }
-    ans
+    panic!("Invalid begin");
+}
+
+fn calculate_size_rec(cmds: &mut impl Iterator<Item = Cmd>, deletion_size: &mut u32) -> Size {
+    const MAX_SIZE: Ans1 = 100_000;
+    let mut fs_objs: HashMap<Name, Option<Size>> = HashMap::new();
+    while let Some(cmd) = cmds.next() {
+        match cmd {
+            Cmd::Cd(name) => match &**name {
+                ".." => break,
+                _ => {
+                    let sum = fs_objs
+                        .get_mut(&name)
+                        .unwrap_or_else(|| panic!("Dir '{name}' should exist in fs_objs"));
+                    let size = calculate_size_rec(cmds, deletion_size);
+                    if size.0 <= MAX_SIZE {
+                        *deletion_size += size.0;
+                    }
+                    sum.insert(size);
+                }
+            },
+            Cmd::Ls(ls) => {
+                fs_objs.extend(ls.iter().map(|obj| match obj {
+                    FsObj::File(nm, sz) => (nm.clone(), Some(*sz)),
+                    FsObj::Dir(nm) => (nm.clone(), None),
+                }));
+            }
+        }
+    }
+    fs_objs
+        .into_values()
+        .fold(Some(Size(0)), |acc, sz| Some(acc? + sz?))
+        .expect("Sum is known")
 }
 
 pub fn no_space_left_on_device_2(input: &str) -> Ans2 {
@@ -72,7 +68,7 @@ pub fn no_space_left_on_device_2(input: &str) -> Ans2 {
     todo!("2")
 }
 
-#[derive(Debug, Deref)]
+#[derive(Debug, Deref, IntoIterator)]
 struct Parsed(Vec<Cmd>);
 
 impl FromStr for Parsed {
@@ -149,14 +145,18 @@ impl From<u32> for Size {
     }
 }
 
-#[derive(Debug, FromStr, Clone, Eq, PartialEq, Hash, Display)]
+impl From<Size> for u32 {
+    fn from(num: Size) -> u32 {
+        num.0
+    }
+}
+
+#[derive(Debug, FromStr, Clone, Eq, PartialEq, Hash, Display, Deref)]
 struct Name(String);
 
-impl Deref for Name {
-    type Target = str;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
+impl Borrow<str> for Name {
+    fn borrow(&self) -> &str {
+        self.0.borrow()
     }
 }
 
@@ -167,7 +167,7 @@ fn parse(str: &str) -> Parsed {
 fn main() {
     let str = get_input_str(file!());
     let ans = no_space_left_on_device_1(&str);
-    println!("Part 1: {ans}");
+    println!("Part 1: {ans}"); // 1432936
     let ans = no_space_left_on_device_2(&str);
     println!("Part 2: {ans}");
 }
@@ -225,7 +225,7 @@ $ ls
 
     #[test]
     fn test_2() {
-        let expected = todo!();
+        let expected = 24933642;
         let ans = no_space_left_on_device_2(get_input());
         assert_eq!(ans, expected);
     }
