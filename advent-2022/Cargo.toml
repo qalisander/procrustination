@@ -62,3 +62,7 @@ path = "src/day_6/tuning_trouble.rs"
 [[bin]]
 name = "day_7"
 path = "src/day_7/no_space_left_on_device.rs"
+
+[[bin]]
+name = "day_8"
+path = "src/day_8/treetop_tree_house.rs"
