@@ -10,13 +10,27 @@ type Ans2 = usize;
 
 pub fn treetop_tree_house_1(input: &str) -> Ans1 {
     let field = parse(input).0;
-    let mut interior_visible = HashSet::new();
     let i_max = field.len();
     let j_max = field[0].len();
 
-    for i in 1..i_max {
+    let horiz_interior_visible: HashSet<_> = get_horiz_visible(&field).collect();
+    let vert_interior_visible: HashSet<_> = get_horiz_visible(&transpose(&field))
+        .map(|(j, i)| (i, j))
+        .collect();
+
+    let interior_visible = horiz_interior_visible.union(&vert_interior_visible);
+    let edge_visible_count = i_max * 2 + j_max * 2 - 4;
+    edge_visible_count + interior_visible.count()
+}
+
+fn get_horiz_visible(field: &Vec<Vec<u8>>) -> impl Iterator<Item = (usize, usize)> {
+    let mut interior_visible = HashSet::new();
+    let (i_begin, i_end) = (1, field.len() - 1);
+    let (j_begin, j_end) = (1, field[0].len() - 1);
+
+    for i in i_begin..i_end {
         let mut max = 0_u8;
-        for j in 1..j_max {
+        for j in j_begin..j_end {
             max = max.max(field[i][j - 1]);
             if field[i][j] > max {
                 interior_visible.insert((i, j));
@@ -24,19 +38,17 @@ pub fn treetop_tree_house_1(input: &str) -> Ans1 {
         }
 
         max = 0_u8;
-        for j in (1..j_max).rev() {
+        for j in (j_begin..j_end).rev() {
             max = max.max(field[i][j + 1]);
             if field[i][j] > max {
                 interior_visible.insert((i, j));
             }
         }
     }
-
-    let edge_visible_count = (i_max * 2 + j_max * 2 - 4);
-    edge_visible_count + interior_visible.len()
+    interior_visible.into_iter()
 }
 
-fn transpose<T: Copy>(matrix: Vec<Vec<T>>) -> Vec<Vec<T>> {
+fn transpose<T: Copy>(matrix: &Vec<Vec<T>>) -> Vec<Vec<T>> {
     let i_max = matrix.len();
     let j_max = matrix[0].len();
     (0..j_max)
