@@ -286,13 +286,13 @@ fn print<T: Debug>(field: impl IntoIterator<Item = impl IntoIterator<Item = T>>)
     );
 }
 
-fn transpose<T: Clone>(
+fn transpose<T>(
     matrix: impl IntoIterator<Item = impl IntoIterator<Item = T>>,
 ) -> impl Iterator<Item = impl Iterator<Item = T>> {
     let mut iters = matrix
         .into_iter()
         .map(|iter| iter.into_iter())
-        .collect_vec(); // TODO: inte_iter() type is asent. Bug
+        .collect_vec();
 
     (0..iters.len()).map(move |_| {
         iters
