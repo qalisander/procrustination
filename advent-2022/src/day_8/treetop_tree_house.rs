@@ -1,7 +1,10 @@
 use advent_2022_rs::get_input_str;
-use itertools::Itertools;
+use derive_more::{Add, Deref, Mul};
+use itertools::{iproduct, Itertools};
+use num_traits::Num;
 use std::collections::HashSet;
 use std::iter;
+use std::ops::Index;
 
 // https://adventofcode.com/2022/day/8
 
@@ -59,6 +62,66 @@ fn transpose<T: Copy>(matrix: &Vec<Vec<T>>) -> Vec<Vec<T>> {
 pub fn treetop_tree_house_2(input: &str) -> Ans2 {
     let parsed = parse(input);
     todo!("2")
+}
+
+fn get_scenic_score(x: Coord, field: &Field) -> usize {
+    let deltas = [(-1, 0), (1, 0), (0, -1), (0, 1)];
+    for delta in deltas.map(Coord::from) {
+        let mut score = 0;
+        let mut curr_x = x + delta;
+        let mut prev_val = None;
+        while field.in_bounds(curr_x) {
+            if let Some(prev_val) = prev_val {
+                let curr_val = field[curr_x];
+                if prev_val < curr_val {
+                    score += 1;
+                } else {
+                    break;
+                }
+            }
+            prev_val.insert(field[curr_x]);
+            curr_x = curr_x + delta
+        }
+    }
+    unimplemented!()
+}
+
+#[derive(Deref)]
+struct Field(Vec<Vec<u8>>);
+
+impl Field {
+    fn in_bounds(&self, coord: Coord) -> bool {
+        0_i32 <= coord.0 && coord.0 < self.i_max() && 0_i32 <= coord.1 && coord.1 <= self.j_max()
+    }
+
+    fn i_max(&self) -> i32 {
+        self.0.len() as i32
+    }
+
+    fn j_max(&self) -> i32 {
+        self.0[0].len() as i32
+    }
+
+    fn iter_coord(&self) -> impl Iterator<Item = Coord> + '_ {
+        iproduct!((0..self.i_max()), (0..self.j_max())).map(Coord::from)
+    }
+}
+
+impl Index<Coord> for Field {
+    type Output = u8;
+
+    fn index(&self, index: Coord) -> &Self::Output {
+        &self.0[index.0 as usize][index.1 as usize]
+    }
+}
+
+#[derive(Add, Copy, Clone)]
+struct Coord(i32, i32);
+
+impl<T: Into<i32>> From<(T, T)> for Coord {
+    fn from(value: (T, T)) -> Self {
+        Coord(value.0.into(), value.1.into())
+    }
 }
 
 #[derive(Debug)]
