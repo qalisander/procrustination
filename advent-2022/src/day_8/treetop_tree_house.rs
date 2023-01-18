@@ -1,9 +1,7 @@
 use advent_2022_rs::get_input_str;
 use derive_more::{Add, Deref, Mul};
-use itertools::{iproduct, Itertools};
-use num_traits::Num;
+use itertools::{iproduct};
 use std::collections::HashSet;
-use std::iter;
 use std::ops::Index;
 
 // https://adventofcode.com/2022/day/8
@@ -60,38 +58,20 @@ fn transpose<T: Copy>(matrix: &Vec<Vec<T>>) -> Vec<Vec<T>> {
 }
 
 pub fn treetop_tree_house_2(input: &str) -> Ans2 {
-    let parsed = parse(input);
-    todo!("2")
+    let field = parse(input);
+    field
+        .coord_iter()
+        .map(|x| field.get_scenic_score(x))
+        .max()
+        .expect("Not empty field")
 }
 
-fn get_scenic_score(x: Coord, field: &Field) -> usize {
-    let deltas = [(-1, 0), (1, 0), (0, -1), (0, 1)];
-    for delta in deltas.map(Coord::from) {
-        let mut score = 0;
-        let mut curr_x = x + delta;
-        let mut prev_val = None;
-        while field.in_bounds(curr_x) {
-            if let Some(prev_val) = prev_val {
-                let curr_val = field[curr_x];
-                if prev_val < curr_val {
-                    score += 1;
-                } else {
-                    break;
-                }
-            }
-            prev_val.insert(field[curr_x]);
-            curr_x = curr_x + delta
-        }
-    }
-    unimplemented!()
-}
-
-#[derive(Deref)]
+#[derive(Deref, Debug)]
 struct Field(Vec<Vec<u8>>);
 
 impl Field {
     fn in_bounds(&self, coord: Coord) -> bool {
-        0_i32 <= coord.0 && coord.0 < self.i_max() && 0_i32 <= coord.1 && coord.1 <= self.j_max()
+        0_i32 <= coord.0 && coord.0 < self.i_max() && 0_i32 <= coord.1 && coord.1 < self.j_max()
     }
 
     fn i_max(&self) -> i32 {
@@ -102,8 +82,28 @@ impl Field {
         self.0[0].len() as i32
     }
 
-    fn iter_coord(&self) -> impl Iterator<Item = Coord> + '_ {
+    fn coord_iter(&self) -> impl Iterator<Item = Coord> + '_ {
         iproduct!((0..self.i_max()), (0..self.j_max())).map(Coord::from)
+    }
+
+    fn get_scenic_score(&self, x: Coord) -> usize {
+        let deltas = [(-1, 0), (1, 0), (0, -1), (0, 1)];
+        deltas
+            .into_iter()
+            .map(Coord::from)
+            .map(|delta| {
+                let mut score = 0;
+                let mut curr_x = x + delta;
+                while self.in_bounds(curr_x) {
+                    score += 1;
+                    if self[curr_x] >= self[x] {
+                        break
+                    }
+                    curr_x = curr_x + delta
+                }
+                score
+            })
+            .product()
     }
 }
 
@@ -115,7 +115,7 @@ impl Index<Coord> for Field {
     }
 }
 
-#[derive(Add, Copy, Clone)]
+#[derive(Add, Copy, Clone, Debug)]
 struct Coord(i32, i32);
 
 impl<T: Into<i32>> From<(T, T)> for Coord {
@@ -124,10 +124,7 @@ impl<T: Into<i32>> From<(T, T)> for Coord {
     }
 }
 
-#[derive(Debug)]
-struct Parsed(Vec<Vec<u8>>);
-
-fn parse(str: &str) -> Parsed {
+fn parse(str: &str) -> Field {
     let vec_vec = str
         .split_whitespace()
         .map(|str| {
@@ -136,14 +133,16 @@ fn parse(str: &str) -> Parsed {
                 .collect()
         })
         .collect();
-    Parsed(vec_vec)
+    Field(vec_vec)
 }
 
 fn main() {
     let str = get_input_str(file!());
     let ans = treetop_tree_house_1(&str);
+    assert_eq!(1546, ans);
     println!("Part 1: {ans}");
     let ans = treetop_tree_house_2(&str);
+    assert_eq!(519064, ans);
     println!("Part 2: {ans}");
 }
 
@@ -182,7 +181,7 @@ mod tests {
 
     #[test]
     fn test_2() {
-        let expected = todo!();
+        let expected = 8;
         let ans = treetop_tree_house_2(get_input());
         assert_eq!(ans, expected);
     }
