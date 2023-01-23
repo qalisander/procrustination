@@ -4,8 +4,8 @@ use itertools::Itertools;
 
 // https://adventofcode.com/2022/day/9
 
-type Ans1 = todo!();
-type Ans2 = todo!();
+type Ans1 = u32;
+type Ans2 = u32;
 
 pub fn rope_bridge_1(input: &str) -> Ans1 {
     let parsed = parse(input);
