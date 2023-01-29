@@ -14,6 +14,7 @@ pub fn rope_bridge_1(input: &str) -> Ans1 {
 
 pub fn rope_bridge_2(input: &str) -> Ans2 {
     let parsed = parse(input);
+
     todo!("2")
 }
 
