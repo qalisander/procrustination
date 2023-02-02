@@ -12,18 +12,18 @@ type Ans2 = u32;
 
 pub fn rope_bridge_1(input: &str) -> Ans1 {
     let dirs = parse(input).0;
-    let mut tails = HashSet::new();
 
     let mut head = Coord(0, 0);
     let mut tail = Coord(0, 0);
+    let mut tails = HashSet::from([tail]);
 
     for dir in dirs {
-        tails.insert(tail);
         let new_head = head + dir.into();
         if tail.dist(new_head) > 1 {
             tail = head;
         }
         head = new_head;
+        tails.insert(tail);
     }
 
     tails.len()
@@ -54,8 +54,8 @@ impl From<Dir> for Coord {
         match value {
             Dir::R => Coord(1, 0),
             Dir::L => Coord(-1, 0),
-            Dir::U => Coord(-1, 0),
-            Dir::D => Coord(1, 0),
+            Dir::U => Coord(0, -1),
+            Dir::D => Coord(0, 1),
         }
     }
 }
