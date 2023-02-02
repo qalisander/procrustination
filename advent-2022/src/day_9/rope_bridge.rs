@@ -1,4 +1,4 @@
-
+use std::iter;
 use advent_2022_rs::get_input_str;
 use itertools::Itertools;
 
@@ -19,10 +19,30 @@ pub fn rope_bridge_2(input: &str) -> Ans2 {
 }
 
 #[derive(Debug)]
-struct Parsed;
+struct Parsed(Vec<Dir>);
+
+#[derive(Debug, Copy, Clone)]
+enum Dir{
+    R,
+    U,
+    L,
+    D,
+}
 
 fn parse(str: &str) -> Parsed {
-    todo!("Parse")
+    let vec = str.lines().flat_map(|l| {
+        let (dir, steps) = l.split_once(' ').expect("Line splitted");
+        let dir = match dir {
+            "U" => { Dir::U }
+            "D" => { Dir::D }
+            "L" => { Dir::L }
+            "R" => { Dir::R }
+            dir => panic!("Invalid dir '{dir}'")
+        };
+        let steps: usize = steps.parse().expect("Steps count");
+        iter::repeat(dir).take(steps)
+    }).collect();
+    Parsed(vec)
 }
 
 fn main() {
@@ -38,6 +58,14 @@ mod tests {
     use super::*;
 
     const INPUT: &str = r#"
+R 4
+U 4
+L 3
+D 1
+R 4
+D 1
+L 5
+R 2
 "#;
 
     fn get_input() -> &'static str {
