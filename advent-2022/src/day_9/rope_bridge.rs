@@ -8,7 +8,7 @@ use derive_more::*;
 // https://adventofcode.com/2022/day/9
 
 type Ans1 = usize;
-type Ans2 = u32;
+type Ans2 = usize;
 
 pub fn rope_bridge_1(input: &str) -> Ans1 {
     let dirs = parse(input).0;
@@ -30,9 +30,37 @@ pub fn rope_bridge_1(input: &str) -> Ans1 {
 }
 
 pub fn rope_bridge_2(input: &str) -> Ans2 {
-    let parsed = parse(input);
+    let dirs = parse(input).0;
+    let mut knots = [Coord(0, 0); 10];
+    let mut tails = HashSet::from([knots.last().copied().unwrap()]);
 
-    todo!("2")
+    for dir in dirs {
+        let mut prev = None;
+        let mut new_prev = None;
+        for knot in &mut knots {
+            if prev.is_none() {
+                // current knot is head
+                prev = Some(*knot);
+                *knot = *knot + dir.into();
+                new_prev = Some(*knot);
+                continue;
+            };
+
+            if knot.dist(new_prev.expect("new_prev is set")) > 1 {
+                let new_knot = prev.unwrap();
+                prev = Some(*knot);
+                new_prev = Some(new_knot);
+                *knot = new_knot
+            } else {
+                prev = Some(*knot);
+                new_prev = Some(*knot);
+            }
+        }
+        tails.insert(knots.last().copied().unwrap());
+    }
+    dbg!(&knots);
+
+    tails.len()
 }
 
 #[derive(Debug)]
@@ -123,9 +151,32 @@ R 2
     }
 
     #[test]
-    fn test_2() {
-        let expected = todo!();
+    fn test_2_1() {
+        let expected = 1;
         let ans = rope_bridge_2(get_input());
+        assert_eq!(ans, expected);
+    }
+
+    const INPUT_2: &str = r#"
+R 5
+U 8
+L 8
+D 3
+R 17
+D 10
+L 25
+U 20
+"#;
+
+    // TODO: refactor get input_2
+    fn get_input_2() -> &'static str {
+        INPUT_2.strip_prefix('\n').unwrap().strip_suffix('\n').unwrap()
+    }
+
+    #[test]
+    fn test_2_2() {
+        let expected = 36;
+        let ans = rope_bridge_2(get_input_2());
         assert_eq!(ans, expected);
     }
 }
