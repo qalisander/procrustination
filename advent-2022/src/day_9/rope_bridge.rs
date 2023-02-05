@@ -1,9 +1,10 @@
+use advent_2022_rs::get_input_str;
+use derive_more::*;
+use itertools::Itertools;
 use std::collections::HashSet;
+use std::fmt::{Display, Formatter};
 use std::iter;
 use std::ops::Div;
-use advent_2022_rs::get_input_str;
-use itertools::Itertools;
-use derive_more::*;
 
 // https://adventofcode.com/2022/day/9
 
@@ -31,13 +32,13 @@ pub fn rope_bridge_1(input: &str) -> Ans1 {
 
 pub fn rope_bridge_2(input: &str) -> Ans2 {
     let dirs = parse(input).0;
-    let mut knots = [Coord(0, 0); 10];
+    let mut knots = Knots([Coord(0, 0); 10]);
     let mut tails = HashSet::from([knots.last().copied().unwrap()]);
 
     for dir in dirs {
         let mut prev = None;
         let mut new_prev = None;
-        for knot in &mut knots {
+        for knot in knots.iter_mut() {
             if prev.is_none() {
                 // current knot is head
                 prev = Some(*knot);
@@ -56,18 +57,44 @@ pub fn rope_bridge_2(input: &str) -> Ans2 {
                 new_prev = Some(*knot);
             }
         }
+        println!("{knots}\n");
         tails.insert(knots.last().copied().unwrap());
     }
-    dbg!(&knots);
-
     tails.len()
+}
+
+#[derive(Debug, Deref, DerefMut)]
+struct Knots([Coord; 10]);
+
+impl Display for Knots {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let (min_i, max_i) = self.0.iter().map(|x| x.0).minmax().into_option().unwrap();
+        let (min_j, max_j) = self.0.iter().map(|x| x.1).minmax().into_option().unwrap();
+        for i in min_i..=max_i {
+            for j in min_j..=max_j {
+                if let Some(index) = self.0.iter().position(|&x| Coord(i, j) == x) {
+                    if index == 0 {
+                        write!(f, "H")?;
+                    } else if index < 10 {
+                        write!(f, "{}", index)?;
+                    } else {
+                        panic!("Invalid index! {index}")
+                    }
+                } else {
+                    write!(f, ".")?;
+                }
+            }
+            writeln!(f)?;
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug)]
 struct Parsed(Vec<Dir>);
 
 #[derive(Debug, Copy, Clone)]
-enum Dir{
+enum Dir {
     R,
     L,
     U,
@@ -80,33 +107,36 @@ struct Coord(i32, i32);
 impl From<Dir> for Coord {
     fn from(value: Dir) -> Self {
         match value {
-            Dir::R => Coord(1, 0),
-            Dir::L => Coord(-1, 0),
-            Dir::U => Coord(0, -1),
-            Dir::D => Coord(0, 1),
+            Dir::R => Coord(0, 1),
+            Dir::L => Coord(0, -1),
+            Dir::U => Coord(-1, 0),
+            Dir::D => Coord(1, 0),
         }
     }
 }
 
 impl Coord {
-    fn dist(&self, rhs: Coord) -> i32{
+    fn dist(&self, rhs: Coord) -> i32 {
         (self.0 - rhs.0).abs().max((self.1 - rhs.1).abs())
     }
 }
 
 fn parse(str: &str) -> Parsed {
-    let vec = str.lines().flat_map(|l| {
-        let (dir, steps) = l.split_once(' ').expect("Line splitted");
-        let dir = match dir {
-            "U" => { Dir::U }
-            "D" => { Dir::D }
-            "L" => { Dir::L }
-            "R" => { Dir::R }
-            dir => panic!("Invalid dir '{dir}'")
-        };
-        let steps: usize = steps.parse().expect("Steps count");
-        iter::repeat(dir).take(steps)
-    }).collect();
+    let vec = str
+        .lines()
+        .flat_map(|l| {
+            let (dir, steps) = l.split_once(' ').expect("Line split");
+            let dir = match dir {
+                "U" => Dir::U,
+                "D" => Dir::D,
+                "L" => Dir::L,
+                "R" => Dir::R,
+                dir => panic!("Invalid dir '{dir}'"),
+            };
+            let steps: usize = steps.parse().expect("Steps count");
+            iter::repeat(dir).take(steps)
+        })
+        .collect();
     Parsed(vec)
 }
 
@@ -134,7 +164,11 @@ R 2
 "#;
 
     fn get_input() -> &'static str {
-        INPUT.strip_prefix('\n').unwrap().strip_suffix('\n').unwrap()
+        INPUT
+            .strip_prefix('\n')
+            .unwrap()
+            .strip_suffix('\n')
+            .unwrap()
     }
 
     #[test]
@@ -170,7 +204,11 @@ U 20
 
     // TODO: refactor get input_2
     fn get_input_2() -> &'static str {
-        INPUT_2.strip_prefix('\n').unwrap().strip_suffix('\n').unwrap()
+        INPUT_2
+            .strip_prefix('\n')
+            .unwrap()
+            .strip_suffix('\n')
+            .unwrap()
     }
 
     #[test]
