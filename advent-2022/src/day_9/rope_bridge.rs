@@ -14,17 +14,16 @@ type Ans2 = usize;
 pub fn rope_bridge_1(input: &str) -> Ans1 {
     let dirs = parse(input).0;
 
-    let mut head = Coord(0, 0);
-    let mut tail = Coord(0, 0);
-    let mut tails = HashSet::from([tail]);
+    let mut knots = Knots([Coord(0, 0); 2]);
+    let mut tails = HashSet::from([knots.tail()]);
 
     for dir in dirs {
-        let new_head = head + dir.into();
-        if tail.dist(new_head) > 1 {
-            tail = head;
+        let new_head = knots.head() + dir.into();
+        if let Some(dir) = knots.tail().get_next_dir(new_head) {
+            *knots.tail_mut() += dir;
         }
-        head = new_head;
-        tails.insert(tail);
+        *knots.head_mut() = new_head;
+        tails.insert(knots.tail());
     }
 
     tails.len()
@@ -38,6 +37,7 @@ pub fn rope_bridge_2(input: &str) -> Ans2 {
     for dir in dirs {
         let mut prev = None;
         let mut new_prev = None;
+        // TODO: store previous direction
         for knot in knots.iter_mut() {
             if prev.is_none() {
                 // current knot is head
@@ -58,15 +58,33 @@ pub fn rope_bridge_2(input: &str) -> Ans2 {
             }
         }
         println!("{knots}\n");
-        tails.insert(knots.last().copied().unwrap());
+        tails.insert(knots.tail());
     }
     tails.len()
 }
 
 #[derive(Debug, Deref, DerefMut)]
-struct Knots([Coord; 10]);
+struct Knots<const LN: usize>([Coord; LN]);
 
-impl Display for Knots {
+impl<const LN: usize> Knots<LN> {
+    fn head(&self) -> Coord {
+        self.first().copied().expect("Head exists")
+    }
+
+    fn head_mut(&mut self) -> &mut Coord {
+        self.first_mut().expect("Head exists")
+    }
+
+    fn tail(&self) -> Coord {
+        self.last().copied().expect("Tail exists")
+    }
+
+    fn tail_mut(&mut self) -> &mut Coord {
+        self.last_mut().expect("Tail exists")
+    }
+}
+
+impl<const LN: usize> Display for Knots<LN> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let (min_i, max_i) = self.0.iter().map(|x| x.0).minmax().into_option().unwrap();
         let (min_j, max_j) = self.0.iter().map(|x| x.1).minmax().into_option().unwrap();
@@ -101,7 +119,7 @@ enum Dir {
     D,
 }
 
-#[derive(Debug, Eq, PartialEq, Hash, Copy, Clone, Add)]
+#[derive(Debug, Eq, PartialEq, Hash, Copy, Clone, Add, Sub, AddAssign)]
 struct Coord(i32, i32);
 
 impl From<Dir> for Coord {
@@ -118,6 +136,16 @@ impl From<Dir> for Coord {
 impl Coord {
     fn dist(&self, rhs: Coord) -> i32 {
         (self.0 - rhs.0).abs().max((self.1 - rhs.1).abs())
+    }
+
+    /// Get next direction based on previous knot
+    fn get_next_dir(&self, prev: Coord) -> Option<Coord> {
+        let delta = prev - *self;
+        if delta.0.abs().max(delta.1.abs()) > 1 {
+            Some(Coord(delta.0.signum(), delta.1.signum()))
+        } else {
+            None
+        }
     }
 }
 
@@ -143,6 +171,7 @@ fn parse(str: &str) -> Parsed {
 fn main() {
     let str = get_input_str(file!());
     let ans = rope_bridge_1(&str);
+    assert_eq!(6563, ans);
     println!("Part 1: {ans}");
     let ans = rope_bridge_2(&str);
     println!("Part 2: {ans}");
