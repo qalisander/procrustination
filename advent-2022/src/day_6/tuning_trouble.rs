@@ -1,5 +1,5 @@
-use derive_more::Deref;
 use advent_2022_rs::get_input_str;
+use derive_more::Deref;
 use itertools::Itertools;
 
 // https://adventofcode.com/2022/day/6

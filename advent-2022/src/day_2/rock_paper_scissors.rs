@@ -13,7 +13,8 @@ const Paper: Ans = 1;
 const Scissors: Ans = 2;
 
 pub fn rock_paper_scissors_1(input: &str) -> Ans1 {
-    parse(input).0
+    parse(input)
+        .0
         .into_iter()
         .map(|(rival, me)| {
             let me = (me as Ans) - ('X' as Ans);
@@ -29,7 +30,8 @@ pub fn rock_paper_scissors_2(input: &str) -> Ans2 {
     const DRAW: Ans = 1;
     const WIN: Ans = 2;
 
-    parse(input).0
+    parse(input)
+        .0
         .into_iter()
         .map(|(rival, me)| {
             let my_outcome = (me as Ans) - ('X' as Ans);
@@ -44,12 +46,12 @@ pub fn rock_paper_scissors_2(input: &str) -> Ans2 {
 fn calculate_score(me: Ans, rival: Ans) -> Ans {
     me + 1
         + if rival == me {
-        3
-    } else if (rival + 1) % 3 == me {
-        6
-    } else {
-        0
-    }
+            3
+        } else if (rival + 1) % 3 == me {
+            6
+        } else {
+            0
+        }
 }
 
 #[derive(Debug)]

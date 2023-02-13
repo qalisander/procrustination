@@ -5,7 +5,7 @@ use anyhow::{anyhow, Error, Result};
 use derive_more::{Add, Deref, Display, FromStr, IntoIterator};
 use itertools::Itertools;
 use std::borrow::Borrow;
-use std::collections::{HashMap};
+use std::collections::HashMap;
 use std::iter::Sum;
 use std::ops::Deref;
 use std::str::FromStr;
@@ -76,7 +76,6 @@ pub fn no_space_left_on_device_2(input: &str) -> Ans2 {
     enter_root(&mut cmds);
     let total_size: u32 = calculate_size_rec(&mut cmds, &mut |_| {}).into();
 
-
     let mut cmds = parse(input).into_iter();
     enter_root(&mut cmds);
     let free_space = TOTAL_DISC_SPACE - total_size;
@@ -90,7 +89,7 @@ pub fn no_space_left_on_device_2(input: &str) -> Ans2 {
                 }
             }
             Some(delete_dir_size) => {
-                if space_to_free <= *size && *size < *delete_dir_size{
+                if space_to_free <= *size && *size < *delete_dir_size {
                     *delete_dir_size = *size
                 }
             }

@@ -134,7 +134,7 @@ impl Emulator {
         self.dirs.next_round();
     }
 
-    fn get_minmax_i(&self) -> (i32, i32){
+    fn get_minmax_i(&self) -> (i32, i32) {
         self.elfs
             .iter()
             .map(|elf| elf.0)
@@ -143,7 +143,7 @@ impl Emulator {
             .unwrap()
     }
 
-    fn get_minmax_j(&self) -> (i32, i32){
+    fn get_minmax_j(&self) -> (i32, i32) {
         self.elfs
             .iter()
             .map(|elf| elf.1)

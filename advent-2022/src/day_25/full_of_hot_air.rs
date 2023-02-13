@@ -31,7 +31,11 @@ impl From<&str> for SnafuNum {
 
 impl Display for SnafuNum {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0.iter().rev().cloned().map(char::from).join(""))
+        write!(
+            f,
+            "{}",
+            self.0.iter().rev().cloned().map(char::from).join("")
+        )
     }
 }
 
@@ -85,23 +89,22 @@ impl Add for SnafuNum {
 
     fn add(self, rhs: Self) -> Self::Output {
         let vec = self
-            .0.iter()
+            .0
+            .iter()
             .map(Some)
             .chain(iter::repeat(None))
             .zip(rhs.0.iter().map(Some).chain(iter::repeat(None)))
             .scan(0, |acc, zipped| {
                 let sum = match zipped {
-                    (Some(SnafuDgt(l)), Some(SnafuDgt(r))) => {
-                        l + r + *acc
-                    }
-                    (None, Some(SnafuDgt(n))) | (Some(SnafuDgt(n)), None) => {
-                        n + *acc
-                    }
+                    (Some(SnafuDgt(l)), Some(SnafuDgt(r))) => l + r + *acc,
+                    (None, Some(SnafuDgt(n))) | (Some(SnafuDgt(n)), None) => n + *acc,
                     (None, None) if *acc > 0 => *acc,
                     _ => return None,
                 };
                 *acc = (sum - SnafuDgt::MIN_VAL).div_euclid(5);
-                Some(SnafuDgt((sum - SnafuDgt::MIN_VAL).rem_euclid(5) + SnafuDgt::MIN_VAL))
+                Some(SnafuDgt(
+                    (sum - SnafuDgt::MIN_VAL).rem_euclid(5) + SnafuDgt::MIN_VAL,
+                ))
             })
             .collect();
         SnafuNum(vec)
@@ -111,9 +114,7 @@ impl Add for SnafuNum {
 type Parsed = Vec<SnafuNum>;
 
 fn parse(str: &str) -> Parsed {
-    str.lines()
-        .map(SnafuNum::from)
-        .collect_vec()
+    str.lines().map(SnafuNum::from).collect_vec()
 }
 
 fn main() {

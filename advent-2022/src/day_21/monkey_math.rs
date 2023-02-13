@@ -188,7 +188,7 @@ impl Op {
         };
     }
 
-    fn revert(&mut self) -> Op{
+    fn revert(&mut self) -> Op {
         let mut op = self.clone();
         op.revert_mut();
         op

@@ -1,6 +1,6 @@
 use advent_2022_rs::get_input_str;
 use derive_more::{Add, Deref, Mul};
-use itertools::{iproduct};
+use itertools::iproduct;
 use std::collections::HashSet;
 use std::ops::Index;
 
@@ -97,7 +97,7 @@ impl Field {
                 while self.in_bounds(curr_x) {
                     score += 1;
                     if self[curr_x] >= self[x] {
-                        break
+                        break;
                     }
                     curr_x = curr_x + delta
                 }

@@ -1,6 +1,6 @@
-use std::any::Any;
 use advent_2022_rs::get_input_str;
 use itertools::Itertools;
+use std::any::Any;
 
 // https://adventofcode.com/2022/day/1
 
