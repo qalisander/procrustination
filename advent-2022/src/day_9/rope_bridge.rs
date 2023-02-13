@@ -35,29 +35,22 @@ pub fn rope_bridge_2(input: &str) -> Ans2 {
     let mut tails = HashSet::from([knots.last().copied().unwrap()]);
 
     for dir in dirs {
-        let mut prev = None;
-        let mut new_prev = None;
-        // TODO: store previous direction
+        let mut prev_knot = None;
         for knot in knots.iter_mut() {
-            if prev.is_none() {
-                // current knot is head
-                prev = Some(*knot);
-                *knot = *knot + dir.into();
-                new_prev = Some(*knot);
-                continue;
-            };
-
-            if knot.dist(new_prev.expect("new_prev is set")) > 1 {
-                let new_knot = prev.unwrap();
-                prev = Some(*knot);
-                new_prev = Some(new_knot);
-                *knot = new_knot
-            } else {
-                prev = Some(*knot);
-                new_prev = Some(*knot);
+            match &mut prev_knot {
+                None => {
+                    // current knot is head
+                    *knot += dir.into();
+                    prev_knot = Some(*knot);
+                }
+                Some(prev_knot) => {
+                    if let Some(dir) = knot.get_next_dir(*prev_knot) {
+                        *knot += dir;
+                    }
+                    *prev_knot = *knot;
+                }
             }
         }
-        println!("{knots}\n");
         tails.insert(knots.tail());
     }
     tails.len()
