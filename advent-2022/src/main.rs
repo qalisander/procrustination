@@ -151,27 +151,27 @@ mod tests {
     const INPUT: &str = r#"
 "#;
 
-    fn get_input() -> &'static str {
-        INPUT.strip_prefix('\n').unwrap().strip_suffix('\n').unwrap()
+    fn get_input(input: &'static str) -> &'static str {
+        input.strip_prefix('\n').unwrap().strip_suffix('\n').unwrap()
     }
 
     #[test]
     fn parse_test() {
-        let parsed = parse(get_input());
+        let parsed = parse(get_input(INPUT));
         dbg!(&parsed);
     }
 
     #[test]
     fn test_1() {
         let expected = todo!();
-        let ans = {PROBLEM_NAME}_1(get_input());
+        let ans = {PROBLEM_NAME}_1(get_input(INPUT));
         assert_eq!(ans, expected);
     }
 
     #[test]
     fn test_2() {
         let expected = todo!();
-        let ans = {PROBLEM_NAME}_2(get_input());
+        let ans = {PROBLEM_NAME}_2(get_input(INPUT));
         assert_eq!(ans, expected);
     }
 }
