@@ -72,6 +72,7 @@ path = "src/day_8/treetop_tree_house.rs"
 name = "day_9"
 path = "src/day_9/rope_bridge.rs"
 
+
 [[bin]]
 name = "day_10"
-path = "src/day_10/cathode-ray_tube.rs"
+path = "src/day_10/cathode_ray_tube.rs"

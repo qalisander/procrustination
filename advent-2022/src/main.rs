@@ -30,7 +30,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     fs::create_dir_all(dir_path).await?;
     fs::write(dir_path.join(Path::new("input")), input_res.text().await?).await?;
 
-    let problem_name = get_problem_name(problem_num, &cookie).await?;
+    let problem_name = get_problem_name(problem_num, &cookie).await?
+        .replace('-', "_");
     let problem_file = problem_name.clone() + ".rs";
     let path = dir_path.join(Path::new(&problem_file));
     let problem_exist = path.exists();

@@ -7,12 +7,12 @@ use itertools::Itertools;
 type Ans1 = todo!();
 type Ans2 = todo!();
 
-pub fn cathode-ray_tube_1(input: &str) -> Ans1 {
+pub fn cathode_ray_tube_1(input: &str) -> Ans1 {
     let parsed = parse(input);
     todo!("1")
 }
 
-pub fn cathode-ray_tube_2(input: &str) -> Ans2 {
+pub fn cathode_ray_tube_2(input: &str) -> Ans2 {
     let parsed = parse(input);
     todo!("2")
 }
@@ -26,9 +26,9 @@ fn parse(str: &str) -> Parsed {
 
 fn main() {
     let str = get_input_str(file!());
-    let ans = cathode-ray_tube_1(&str);
+    let ans = cathode_ray_tube_1(&str);
     println!("Part 1: {ans}");
-    let ans = cathode-ray_tube_2(&str);
+    let ans = cathode_ray_tube_2(&str);
     println!("Part 2: {ans}");
 }
 
@@ -52,14 +52,14 @@ mod tests {
     #[test]
     fn test_1() {
         let expected = todo!();
-        let ans = cathode-ray_tube_1(get_input());
+        let ans = cathode_ray_tube_1(get_input());
         assert_eq!(ans, expected);
     }
 
     #[test]
     fn test_2() {
         let expected = todo!();
-        let ans = cathode-ray_tube_2(get_input());
+        let ans = cathode_ray_tube_2(get_input());
         assert_eq!(ans, expected);
     }
 }
