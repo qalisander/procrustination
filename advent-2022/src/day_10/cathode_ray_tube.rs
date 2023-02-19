@@ -1,4 +1,7 @@
-
+use std::collections::HashSet;
+use std::iter::Cycle;
+use std::ops::Deref;
+use derive_more::Deref;
 use advent_2022_rs::get_input_str;
 use itertools::Itertools;
 use crate::Instr::{Addx, Noop};
@@ -10,7 +13,22 @@ type Ans2 = i32;
 
 pub fn cathode_ray_tube_1(input: &str) -> Ans1 {
     let parsed = parse(input);
-    todo!("1")
+    let control_cycles = HashSet::from([20, 60, 100, 140, 180]);
+
+    let mut cycle = 1;
+    let mut x = 1;
+    let mut fut_x =
+    for instr in parsed.0 {
+        match instr {
+            // TODO: takes 1 cycle to complete
+            Noop => {}
+            // TODO: takes 2 cycles to complete
+            Addx(value) => {
+                x += value
+            }
+        }
+    }
+    x
 }
 
 pub fn cathode_ray_tube_2(input: &str) -> Ans2 {
@@ -26,6 +44,7 @@ enum Instr{
     Noop,
     Addx(i32),
 }
+
 
 fn parse(str: &str) -> Parsed {
     let vec = str.lines().map(|l| {
