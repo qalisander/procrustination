@@ -4,6 +4,7 @@ use std::ops::Deref;
 use derive_more::Deref;
 use advent_2022_rs::get_input_str;
 use itertools::Itertools;
+use crate::Event::{BeginAdd, EndAdd, Idle};
 use crate::Instr::{Addx, Noop};
 
 // https://adventofcode.com/2022/day/10
@@ -31,6 +32,21 @@ pub fn cathode_ray_tube_1(input: &str) -> Ans1 {
     x
 }
 
+enum Event{
+    Idle,
+    BeginAdd(i32),
+    EndAdd(i32),
+}
+
+impl From<Parsed> for Vec<Event>{
+    fn from(parsed: Parsed) -> Self {
+        parsed.0.iter().flat_map(|&instr| match instr {
+            Noop => vec![Idle].into_iter(),
+            Addx(value) => vec![BeginAdd(value), EndAdd(value)].into_iter()
+        }).collect()
+    }
+}
+
 pub fn cathode_ray_tube_2(input: &str) -> Ans2 {
     let parsed = parse(input);
     todo!("2")
@@ -39,7 +55,7 @@ pub fn cathode_ray_tube_2(input: &str) -> Ans2 {
 #[derive(Debug)]
 struct Parsed(Vec<Instr>);
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 enum Instr{
     Noop,
     Addx(i32),
