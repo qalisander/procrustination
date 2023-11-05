@@ -1,15 +1,8 @@
 [package]
-name = "sandbox-rs"
+name = "codewars-rs"
 version = "0.1.0"
 authors = ["qalisander <qalisander@gmail.com>"]
 edition = "2021"
-
-[lib]
-name = "codewars"
-path = "codewars/src/lib.rs"
-
-[workspace]
-members = ["codewars"]
 
 [dependencies]
 itertools = "0.10"
@@ -32,11 +25,6 @@ num-bigint = "0.4.3"
 serde_json = "1.0.107"
 serde_with = "3.3.0"
 serde = "1.0.189"
-anyhow = "1.0.72"
-derive_more = "0.99.17"
-strum = "0.22.0"
-strum_macros = "0.23.1"
-
 
 [dev-dependencies]
 test-case = "1.2.0"

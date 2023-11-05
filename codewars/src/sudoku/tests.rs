@@ -1,4 +1,4 @@
-use rust_sandbox::sudoku::sudoku_sol::Sudoku;
+use codewars_rs::sudoku::sudoku::Sudoku;
 
 #[test]
 fn good_sudoku() {
