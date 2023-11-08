@@ -3,6 +3,7 @@ name = "codewars-rs"
 version = "0.1.0"
 authors = ["qalisander <qalisander@gmail.com>"]
 edition = "2021"
+rust-version = "1.62"
 
 [dependencies]
 itertools = "0.10"
