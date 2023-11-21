@@ -1,11 +1,11 @@
 use crate::closest_pair_of_points_in_linearithmic_time::btreemap_sol;
+use crate::closest_pair_of_points_in_linearithmic_time::btreemap_sol::closest_pair;
 use itertools::Itertools;
 use rand::{thread_rng, Rng};
 use std::env;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
-use crate::closest_pair_of_points_in_linearithmic_time::btreemap_sol::closest_pair;
 
 type Points = ((f64, f64), (f64, f64));
 

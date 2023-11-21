@@ -14,17 +14,19 @@ fn part(n: i64) -> String {
 
     fn part_rec(arg: usize, memory: &mut HashMap<usize, Box<[i32]>>) -> Box<[i32]> {
         std::iter::once(arg as i32)
-            .chain((1..=arg / 2)
-                .flat_map(|index| {
-                    let prev_index = &arg - index;
+            .chain((1..=arg / 2).flat_map(|index| {
+                let prev_index = &arg - index;
 
-                    if let Some(slice) = memory.get(&prev_index) {
-                        slice
-                    } else {
-                        let slice = part_rec(prev_index, memory);
-                        memory.entry(prev_index).or_insert(slice)
-                    }.iter().map(move |x| (x * (index as i32))).collect_vec()
-                }))
+                if let Some(slice) = memory.get(&prev_index) {
+                    slice
+                } else {
+                    let slice = part_rec(prev_index, memory);
+                    memory.entry(prev_index).or_insert(slice)
+                }
+                .iter()
+                .map(move |x| (x * (index as i32)))
+                .collect_vec()
+            }))
             .unique()
             .sorted()
             .collect_vec()
@@ -38,16 +40,16 @@ trait VecExt {
     fn median(&self) -> f64;
 }
 
-impl VecExt for Vec<i32>{
+impl VecExt for Vec<i32> {
     fn range(&self) -> f64 {
         *self.iter().max().unwrap() as f64 - *self.iter().min().unwrap() as f64
     }
-    
+
     fn average(&self) -> f64 {
         self.iter().map(|f| *f as f64 / (self.len() as f64)).sum()
     }
-    
-    fn median(&self) -> f64 { 
+
+    fn median(&self) -> f64 {
         (self[(self.len() - 1) / 2] as f64 + self[self.len() / 2] as f64) / 2_f64
     }
 }
@@ -59,7 +61,10 @@ fn returns_expected() {
     testequal(&part(3), "Range: 2 Average: 2.00 Median: 2.00");
     testequal(&part(4), "Range: 3 Average: 2.50 Median: 2.50");
     testequal(&part(5), "Range: 5 Average: 3.50 Median: 3.50");
-    testequal(&part(50), "Range: 86093441 Average: 1552316.81 Median: 120960.00");
+    testequal(
+        &part(50),
+        "Range: 86093441 Average: 1552316.81 Median: 120960.00",
+    );
 }
 fn testequal(ans: &str, sol: &str) {
     assert_eq!(ans, sol);
@@ -74,7 +79,7 @@ fn testequal(ans: &str, sol: &str) {
 //         sub(n - m * p, m - 1).iter().map(|s| s * pow).collect::<Vec<_>>()
 //     }).collect()
 // }
-// 
+//
 // fn part(n: i64) -> String {
 //     let mut v = sub(n, n);
 //     v.sort_unstable();

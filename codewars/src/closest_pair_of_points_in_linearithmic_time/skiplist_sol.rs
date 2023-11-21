@@ -1,7 +1,7 @@
 use itertools::Itertools;
 use num::{Complex, Float};
-use std::cmp::Ordering;
 use skiplist::{OrderedSkipList, SkipMap};
+use std::cmp::Ordering;
 use std::fmt::Debug;
 use std::ops::Bound::Included;
 

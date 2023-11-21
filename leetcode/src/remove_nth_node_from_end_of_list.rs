@@ -10,19 +10,17 @@ pub struct ListNode {
 impl ListNode {
     #[inline]
     fn new(val: i32) -> Self {
-        ListNode {
-            next: None,
-            val,
-        }
+        ListNode { next: None, val }
     }
 }
-
 
 struct Solution;
 
 impl Solution {
     pub fn remove_nth_from_end(mut head: Option<Box<ListNode>>, n: i32) -> Option<Box<ListNode>> {
-        if n <= 0 { panic!("n <= 0"); }
+        if n <= 0 {
+            panic!("n <= 0");
+        }
 
         let mut fast = &mut head as *mut Option<Box<ListNode>>;
         let mut slow = fast;
@@ -47,15 +45,13 @@ impl Solution {
 
         fn advance_node(ptr: *mut Option<Box<ListNode>>) -> *mut Option<Box<ListNode>> {
             match unsafe { (*ptr).as_mut() } {
-                None => { std::ptr::null_mut() }
-                Some(node) => {
-                    &mut node.next as *mut Option<Box<ListNode>>
-                }
+                None => std::ptr::null_mut(),
+                Some(node) => &mut node.next as *mut Option<Box<ListNode>>,
             }
         }
 
         fn remove_node(ptr: *mut Option<Box<ListNode>>) {
-            use std::alloc::{Layout, dealloc};
+            use std::alloc::{dealloc, Layout};
             match unsafe { (*ptr).as_mut() } {
                 None => {}
                 Some(next) => {
@@ -71,11 +67,10 @@ impl Solution {
     }
 }
 
-
 #[cfg(test)]
 mod test {
-    use std::iter;
     use crate::remove_nth_node_from_end_of_list::{ListNode, Solution};
+    use std::iter;
 
     // Input: head = [1,2,3,4,5], n = 2
     // Output: [1,2,3,5]
@@ -107,13 +102,13 @@ mod test {
         assert_eq!(expected, output);
     }
 
-    fn create_linked_list(input: impl DoubleEndedIterator<Item=i32>) -> Option<Box<ListNode>> {
+    fn create_linked_list(input: impl DoubleEndedIterator<Item = i32>) -> Option<Box<ListNode>> {
         input.into_iter().rev().fold(None, |acc, i| {
             Some(Box::new(ListNode { val: i, next: acc }))
         })
     }
 
-    fn get_numbers(input: Option<Box<ListNode>>) -> impl Iterator<Item=i32> {
+    fn get_numbers(input: Option<Box<ListNode>>) -> impl Iterator<Item = i32> {
         let mut current = input;
         iter::from_fn(move || {
             if let Some(node) = current.take() {

@@ -13,8 +13,7 @@ fn bench_fib(c: &mut Criterion) {
 }
 
 fn custom_criterion() -> Criterion {
-    Criterion::default()
-        .sample_size(50)
+    Criterion::default().sample_size(50)
 }
 
 criterion_group!(benches, bench_fib);

@@ -123,8 +123,9 @@ impl Field {
     }
 
     fn tile<T>(&self, (i, j): (T, T)) -> Option<&Tile>
-        where
-            T: PartialOrd + AsPrimitive<usize> + Default {
+    where
+        T: PartialOrd + AsPrimitive<usize> + Default,
+    {
         if self.has_valid_size((i, j)) {
             Some(&self.grid[i.as_()][j.as_()])
         } else {
@@ -133,8 +134,9 @@ impl Field {
     }
 
     fn tile_mut<T>(&mut self, (i, j): (T, T)) -> Option<&mut Tile>
-        where
-            T: PartialOrd + AsPrimitive<usize> + Default {
+    where
+        T: PartialOrd + AsPrimitive<usize> + Default,
+    {
         if self.has_valid_size((i, j)) {
             Some(&mut self.grid[i.as_()][j.as_()])
         } else {
@@ -144,7 +146,7 @@ impl Field {
 
     fn has_valid_size<T>(&self, (i, j): (T, T)) -> bool
     where
-        T: PartialOrd + AsPrimitive<usize> + Default 
+        T: PartialOrd + AsPrimitive<usize> + Default,
     {
         !(i < T::default()
             || j < T::default()
@@ -246,20 +248,18 @@ impl Debug for Field {
             .map(|(i, row)| {
                 row.iter()
                     .enumerate()
-                    .map(|(j, tile)| {
-                        match tile.t_type {
-                            TType::Visited {
-                                prev_tile_id: from_tile,
-                                ..
-                            } => {
-                                let (i, j) = (i as i32, j as i32);
-                                let dir_char = get_dir_char(from_tile, (i, j));
-                                format_walls(tile.walls, dir_char)
-                            }
-                            TType::Unvisited => format_walls(tile.walls, '·'),
-                            TType::Begin => format_walls(0, 'B'),
-                            TType::End => format_walls(0, 'X'),
+                    .map(|(j, tile)| match tile.t_type {
+                        TType::Visited {
+                            prev_tile_id: from_tile,
+                            ..
+                        } => {
+                            let (i, j) = (i as i32, j as i32);
+                            let dir_char = get_dir_char(from_tile, (i, j));
+                            format_walls(tile.walls, dir_char)
                         }
+                        TType::Unvisited => format_walls(tile.walls, '·'),
+                        TType::Begin => format_walls(0, 'B'),
+                        TType::End => format_walls(0, 'X'),
                     })
                     .collect_vec()
             })

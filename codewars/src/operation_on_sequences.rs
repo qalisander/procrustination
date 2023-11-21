@@ -4,12 +4,7 @@ use itertools::Itertools;
 fn solve(arr: Vec<i128>) -> (i128, i128) {
     arr.into_iter()
         .tuples::<(_, _)>()
-        .reduce(|x, y| {
-            (
-                (x.0 * y.0 + x.1 * y.1),
-                (x.0 * y.1 - y.0 * x.1).abs(),
-            )
-        })
+        .reduce(|x, y| ((x.0 * y.0 + x.1 * y.1), (x.0 * y.1 - y.0 * x.1).abs()))
         .unwrap()
 }
 

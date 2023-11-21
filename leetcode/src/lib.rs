@@ -1,6 +1,6 @@
-mod rotate_image;
-mod remove_nth_node_from_end_of_list;
 mod longest_palindromic_substring;
+mod remove_nth_node_from_end_of_list;
+mod rotate_image;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right

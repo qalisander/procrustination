@@ -1,8 +1,8 @@
 #[cfg(test)]
-use crate::nonogram_solvers::nonogram_solver_bitsets::{solve_nonogram, get_permutations};
-use std::fmt::Debug;
+use crate::nonogram_solvers::nonogram_solver_bitsets::{get_permutations, solve_nonogram};
 use bit_set::BitSet;
 use itertools::Itertools;
+use std::fmt::Debug;
 extern crate test;
 use self::test::Bencher;
 use super::*;
@@ -40,36 +40,27 @@ fn get_permutations_15_test() {
 
 #[test]
 fn get_permutations_5_test() {
-    let permutations = get_permutations::<5>(
-        &[2, 2],
-        BitSet::with_capacity(5),
-        BitSet::with_capacity(5)
-    )
-    .map(|perm| perm.iter().map(|bit| bit as u8).collect_vec())
-    .collect_vec();
+    let permutations =
+        get_permutations::<5>(&[2, 2], BitSet::with_capacity(5), BitSet::with_capacity(5))
+            .map(|perm| perm.iter().map(|bit| bit as u8).collect_vec())
+            .collect_vec();
 
     assert_eq!(permutations.first().unwrap(), &[1u8, 1, 0, 1, 1]);
 
-    let permutations = get_permutations::<5>(
-        &[2, 1],
-        BitSet::with_capacity(5),
-        BitSet::with_capacity(5),
-    )
-        .map(|perm| perm.iter().map(|bit| bit as u8).collect_vec())
-        .collect_vec();
+    let permutations =
+        get_permutations::<5>(&[2, 1], BitSet::with_capacity(5), BitSet::with_capacity(5))
+            .map(|perm| perm.iter().map(|bit| bit as u8).collect_vec())
+            .collect_vec();
 
     assert_eq!(permutations.first().unwrap(), &[1u8, 1, 0, 1, 0]);
 }
 
 #[test]
 fn get_permutations_single_clue_test() {
-    let permutations = get_permutations::<15>(
-        &[1],
-        BitSet::with_capacity(15),
-        BitSet::with_capacity(15),
-    )
-    .map(|perm| perm.iter().map(|bit| bit as u8).collect_vec())
-    .collect_vec();
+    let permutations =
+        get_permutations::<15>(&[1], BitSet::with_capacity(15), BitSet::with_capacity(15))
+            .map(|perm| perm.iter().map(|bit| bit as u8).collect_vec())
+            .collect_vec();
     assert_eq!(
         permutations.first().unwrap(),
         &vec![1u8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]

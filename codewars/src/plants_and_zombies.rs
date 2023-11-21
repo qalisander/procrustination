@@ -1,6 +1,6 @@
 //https://www.codewars.com/kata/5a5db0f580eba84589000979/train/rust
-use std::collections::VecDeque;
 use itertools::Itertools;
+use std::collections::VecDeque;
 use std::fmt::{Display, Formatter};
 
 #[derive(Copy, Clone, Debug)]
@@ -86,7 +86,7 @@ impl Field {
                     .collect_tuple::<(_, _, _)>()
                     .expect("Invalid zombie info!")
             })
-            .collect::<VecDeque<(_,_,_)>>();
+            .collect::<VecDeque<(_, _, _)>>();
         Self {
             tiles,
             zombies_outside,
@@ -221,7 +221,7 @@ pub fn plants_and_zombies(lawn: &Vec<&str>, zombies: &Vec<Vec<usize>>) -> usize 
 pub mod example_tests {
     use super::*;
 
-        #[test]
+    #[test]
     #[rustfmt::skip]
     pub fn tests() {
         let example_tests: Vec<(Vec<&str>,Vec<Vec<usize>>,usize)> = vec![

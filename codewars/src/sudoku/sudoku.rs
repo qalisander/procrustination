@@ -54,7 +54,6 @@ pub fn seq_is_valid(seq: Vec<u32>) -> bool {
     (1..=seq.len() as u32).eq(sorted(seq))
 }
 
-
 // NOTE: smb's pretty solutions
 //https://www.codewars.com/kata/540afbe2dc9f615d5e000425/solutions/rust/all/best_practice
 
@@ -134,4 +133,3 @@ pub fn seq_is_valid(seq: Vec<u32>) -> bool {
 //        })
 //    }
 //}
-

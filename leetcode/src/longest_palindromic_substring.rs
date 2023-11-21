@@ -27,7 +27,6 @@ impl Solution {
         max_palindrome.iter().collect()
     }
 
-    // cbbd
     fn expand_max_palindrome(chars: &Vec<char>, left: usize, right: usize) -> &[char] {
         let len = chars.len();
         let mut i = left;

@@ -62,7 +62,7 @@ impl Display for PipeChecker {
             .iter()
             .flat_map(|vec| {
                 vec.iter()
-                    .map(|tile| {   
+                    .map(|tile| {
                         if tile.is_visited {
                             "*".to_string()
                         } else {

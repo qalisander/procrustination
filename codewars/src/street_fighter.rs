@@ -31,40 +31,43 @@ fn super_street_fighter_selection(
 
     moves
         .iter()
-        .map(|dir| match dir {
-            Direction::Up => {
-                if current.y > 0 && !fighters[current.y - 1][current.x].is_empty() {
-                    current.y -= 1;
-                }
-                fighters[current.y][current.x]
-            }
-            Direction::Down => {
-                if current.y + 1 < y_bound && !fighters[current.y + 1][current.x].is_empty() {
-                    current.y += 1;
-                }
-                fighters[current.y][current.x]
-            }
-            Direction::Left => {
-                loop {
-                    current.x = (current.x + x_bound - 1) % x_bound;
-
-                    if !fighters[current.y][current.x].is_empty() {
-                        break;
+        .map(|dir| {
+            match dir {
+                Direction::Up => {
+                    if current.y > 0 && !fighters[current.y - 1][current.x].is_empty() {
+                        current.y -= 1;
                     }
+                    fighters[current.y][current.x]
                 }
-                fighters[current.y][current.x]
-            }
-            Direction::Right => {
-                loop {
-                    current.x = (current.x + x_bound + 1) % x_bound;
-
-                    if !fighters[current.y][current.x].is_empty() {
-                        break;
+                Direction::Down => {
+                    if current.y + 1 < y_bound && !fighters[current.y + 1][current.x].is_empty() {
+                        current.y += 1;
                     }
+                    fighters[current.y][current.x]
                 }
-                fighters[current.y][current.x]
+                Direction::Left => {
+                    loop {
+                        current.x = (current.x + x_bound - 1) % x_bound;
+
+                        if !fighters[current.y][current.x].is_empty() {
+                            break;
+                        }
+                    }
+                    fighters[current.y][current.x]
+                }
+                Direction::Right => {
+                    loop {
+                        current.x = (current.x + x_bound + 1) % x_bound;
+
+                        if !fighters[current.y][current.x].is_empty() {
+                            break;
+                        }
+                    }
+                    fighters[current.y][current.x]
+                }
             }
-        }.to_string())
+            .to_string()
+        })
         .collect_vec()
 }
 

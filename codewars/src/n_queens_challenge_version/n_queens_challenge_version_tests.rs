@@ -1,4 +1,6 @@
-use crate::n_queens_challenge_version::n_queens_challenge_version_sol::{DiagonalChessboard, Queen, solve_n_queens};
+use crate::n_queens_challenge_version::n_queens_challenge_version_sol::{
+    solve_n_queens, DiagonalChessboard, Queen,
+};
 
 #[test]
 fn initial_chessboard_test() {
