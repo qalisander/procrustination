@@ -29,14 +29,18 @@ impl Solution {
 
     // cbbd
     fn expand_max_palindrome(chars: &Vec<char>, left: usize, right: usize) -> &[char] {
-        let len = chars.len() as i32;
-        let mut i = left as i32; // 1
-        let mut j = right as i32; // 2
-        while i >= 0 && j < len && chars[i as usize] == chars[j as usize] {
+        let len = chars.len();
+        let mut i = left;
+        let mut j = right;
+        if chars[i] != chars[j] {
+            return &chars[i..j];
+        }
+
+        while i >= 1 && j + 1 < len && chars[i - 1] == chars[j + 1] {
             i -= 1;
             j += 1;
         }
-        &chars[(i + 1) as usize..j as usize]
+        &chars[i..=j]
     }
 }
 
