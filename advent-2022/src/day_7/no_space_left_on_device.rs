@@ -1,6 +1,6 @@
 extern crate core;
 
-use advent_2022_rs::get_input_str;
+use advent_2022::get_input_str;
 use anyhow::{anyhow, Error, Result};
 use derive_more::{Add, Deref, Display, FromStr, IntoIterator};
 use itertools::Itertools;

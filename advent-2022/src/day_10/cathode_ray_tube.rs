@@ -1,6 +1,6 @@
 use crate::Event::{BeginAdd, EndAdd, Idle};
 use crate::Instr::{Addx, Noop};
-use advent_2022_rs::get_input_str;
+use advent_2022::get_input_str;
 use chrono::format::Item;
 use derive_more::Deref;
 use itertools::Itertools;

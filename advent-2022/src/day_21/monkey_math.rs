@@ -1,5 +1,5 @@
 use crate::Val::*;
-use advent_2022_rs::get_input_str;
+use advent_2022::get_input_str;
 use itertools::Itertools;
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};

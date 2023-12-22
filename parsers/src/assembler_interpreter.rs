@@ -338,7 +338,6 @@ impl AssemblerInterpreter {
                         })
                         .try_collect()?;
                     let msg = args.join("");
-//                    let result = File::open("src/file.txt").into()?;
                     write!(&mut output, "{msg}")?;
                 }
 

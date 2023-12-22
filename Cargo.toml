@@ -9,7 +9,7 @@ name = "codewars"
 path = "codewars/src/lib.rs"
 
 [workspace]
-members = ["codewars", "leetcode", "parsers"]
+members = ["codewars", "leetcode", "parsers", "advent-2022"]
 
 [dependencies]
 itertools = "0.10"

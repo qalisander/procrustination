@@ -9,8 +9,6 @@ use tokio::io::AsyncWriteExt;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // TOSO: fetch problem from <pre><code>
-    // TODO: create struct. Use clap
     let problem_num = get_problem_from_args()
         .or_else(get_problem_from_input)
         .or_else(get_problem_from_date)
@@ -30,7 +28,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     fs::create_dir_all(dir_path).await?;
     fs::write(dir_path.join(Path::new("input")), input_res.text().await?).await?;
 
-    let problem_name = get_problem_name(problem_num, &cookie).await?
+    let problem_name = get_problem_name(problem_num, &cookie)
+        .await?
         .replace('-', "_");
     let problem_file = problem_name.clone() + ".rs";
     let path = dir_path.join(Path::new(&problem_file));
@@ -111,7 +110,7 @@ fn get_problem_from_date() -> Option<u8> {
 const PROBLEM_NAME_TMPL: &str = "{PROBLEM_NAME}";
 const PROBLEM_LINK_TMPL: &str = "{PROBLEM_LINK}";
 const CODE_TMPL: &str = r##"
-use advent_2022_rs::get_input_str;
+use advent_2022::get_input_str;
 use itertools::Itertools;
 
 // {PROBLEM_LINK}

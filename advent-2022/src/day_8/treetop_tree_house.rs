@@ -1,4 +1,4 @@
-use advent_2022_rs::get_input_str;
+use advent_2022::get_input_str;
 use derive_more::{Add, Deref, Mul};
 use itertools::iproduct;
 use std::collections::HashSet;
