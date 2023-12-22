@@ -1,5 +1,5 @@
 [package]
-name = "parsers-rs"
+name = "parsers"
 version = "0.1.0"
 authors = ["qalisander <qalisander@gmail.com>"]
 edition = "2021"

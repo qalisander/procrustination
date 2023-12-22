@@ -1,2 +1,0 @@
-[target.'cfg(all(target_arch = "arm", target_os = "none"))'] #<current-target-triple>
-runner = ".cargo/codelldb.sh"
