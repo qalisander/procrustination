@@ -1,0 +1,78 @@
+[package]
+name = "advent-2022-rs"
+version = "0.1.0"
+authors = ["qalisander <qalisander@gmail.com>"]
+edition = "2021"
+default-run = 'main'
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tokio = { version = "1.22.0", features = ["full"] }
+reqwest = "0.11.13"
+itertools = "0.10.5"
+chrono = "0.4.23"
+scraper = "0.13.0"
+bitflags = "1.3.2"
+derive_more = "0.99.17"
+regex = "1.7.0"
+thiserror = "1.0.38"
+anyhow = "1.0.68"
+num-traits = "0.2.15"
+
+[[bin]]
+name = "main"
+path = "src/main.rs"
+
+[[bin]]
+name = "day_4"
+path = "src/day_4/camp_cleanup.rs"
+
+[[bin]]
+name = "day_1"
+path = "src/day_1/calorie_counting.rs"
+
+[[bin]]
+name = "day_2"
+path = "src/day_2/rock_paper_scissors.rs"
+
+[[bin]]
+name = "day_21"
+path = "src/day_21/monkey_math.rs"
+
+[[bin]]
+name = "day_3"
+path = "src/day_3/rucksack_reorganization.rs"
+
+[[bin]]
+name = "day_23"
+path = "src/day_23/unstable_diffusion.rs"
+
+[[bin]]
+name = "day_25"
+path = "src/day_25/full_of_hot_air.rs"
+
+[[bin]]
+name = "day_5"
+path = "src/day_5/supply_stacks.rs"
+
+[[bin]]
+name = "day_6"
+path = "src/day_6/tuning_trouble.rs"
+
+[[bin]]
+name = "day_7"
+path = "src/day_7/no_space_left_on_device.rs"
+
+[[bin]]
+name = "day_8"
+path = "src/day_8/treetop_tree_house.rs"
+
+[[bin]]
+name = "day_9"
+path = "src/day_9/rope_bridge.rs"
+
+
+[[bin]]
+name = "day_10"
+path = "src/day_10/cathode_ray_tube.rs"
