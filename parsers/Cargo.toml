@@ -1,0 +1,29 @@
+[package]
+name = "parsers-rs"
+version = "0.1.0"
+authors = ["qalisander <qalisander@gmail.com>"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+itertools = "0.10"
+trace = "0.1.6"
+log = "0.4.14"
+env_logger = "0.10.0"
+num = "0.4.0"
+rand = "0.8.4"
+rayon = "1.5.1"
+counter = "0.5.4"
+quickcheck = "1.0.3"
+regex = "1.5.6"
+thiserror = "1.0.37"
+anyhow = "1.0.66"
+
+
+[dev-dependencies]
+test-case = "1.2.0"
+rstest = "0.11.0"
+parameterized = "0.3.1"
+criterion = "0.3.5"
+criterion-macro = "0.3"
