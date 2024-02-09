@@ -1,4 +1,5 @@
 mod container_with_most_water;
+mod largest_rectangle_in_histogram;
 mod longest_palindromic_substring;
 mod remove_nth_node_from_end_of_list;
 mod rotate_image;
