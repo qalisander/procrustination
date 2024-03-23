@@ -3,6 +3,7 @@ mod largest_rectangle_in_histogram;
 mod longest_palindromic_substring;
 mod remove_nth_node_from_end_of_list;
 mod rotate_image;
+mod unique_paths;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right
