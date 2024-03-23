@@ -5,7 +5,7 @@
 // The robot can only move either down or right at any point in time.
 //
 // Given the two integers m and n, return the number of possible unique paths that the robot can take to reach the bottom-right corner.
-pub struct Solution;
+struct Solution;
 
 // Complexity
 // time O(nm)
@@ -27,7 +27,7 @@ impl Solution {
 
         for i in 0..m {
             for j in 0..n {
-                unique_paths_count[i][j] = if i == 0 || j == 0 { 
+                unique_paths_count[i][j] = if i == 0 || j == 0 {
                     1
                 } else {
                     unique_paths_count[i - 1][j] + unique_paths_count[i][j - 1]
