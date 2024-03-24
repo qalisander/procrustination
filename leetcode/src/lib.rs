@@ -4,6 +4,7 @@ mod longest_palindromic_substring;
 mod remove_nth_node_from_end_of_list;
 mod rotate_image;
 mod search_in_rotated_sorted_array;
+mod sort_colors;
 mod unique_paths;
 
 /// Binary search with rust api. Recursive implementation
