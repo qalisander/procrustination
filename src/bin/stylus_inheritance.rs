@@ -1,20 +1,28 @@
-mod stylus_lib {
-    use std::borrow::BorrowMut;
+use crate::oz_lib::base::{Erc721Base, Erc721BaseOverride};
+use crate::oz_lib::pausable::Erc721PausableOverride;
+use crate::oz_lib::Erc721;
+use crate::stylus_lib::TopLevelStorage;
+use std::borrow::{Borrow, BorrowMut};
 
+// NOTE: In this example other extensions won't access their own storage after update override
+
+mod stylus_lib {
     pub trait TopLevelStorage {}
 }
 
 mod oz_lib {
     use crate::stylus_lib::TopLevelStorage;
+    use base::Erc721Base;
+    use pausable::Erc721Pausable;
     use std::borrow::BorrowMut;
     use std::marker::PhantomData;
 
-    pub trait Erc721Virtual {}
-
-    #[derive(Debug, Default)]
-    pub struct Erc721Override;
-
-    impl Erc721Virtual for Erc721Override {}
+    pub trait Erc721Virtual {
+        fn update<S, T>(storage: &mut S)
+        where
+            T: Erc721Virtual,
+            S: TopLevelStorage + BorrowMut<Erc721<T>>;
+    }
 
     #[derive(Debug, Default)]
     pub struct Erc721<T: Erc721Virtual> {
@@ -23,52 +31,85 @@ mod oz_lib {
         phantom_data: PhantomData<T>,
     }
 
-    #[derive(Debug, Default)]
-    pub struct Erc721Pausable<T: Erc721Virtual> {
-        phantom_data: PhantomData<T>,
-    }
+    pub mod pausable {
+        use super::{Erc721, Erc721Virtual};
+        use crate::stylus_lib::TopLevelStorage;
+        use std::borrow::BorrowMut;
+        use std::marker::PhantomData;
 
-    impl<T: Erc721Virtual> Erc721Pausable<T> {
-        pub fn get_erc721base<S>(storage: &mut S) -> &mut Erc721Base<T>
-        where
-            S: TopLevelStorage + BorrowMut<Erc721<T>>,
-        {
-            &mut storage.borrow_mut().base
+        #[derive(Debug, Default)]
+        pub struct Erc721Pausable<T: Erc721Virtual> {
+            phantom_data: PhantomData<T>,
+        }
+
+        #[derive(Debug, Default)]
+        pub struct Erc721PausableOverride<T: Erc721Virtual>(PhantomData<T>);
+
+        impl<Base: Erc721Virtual> Erc721Virtual for Erc721PausableOverride<Base> {
+            fn update<S, This>(storage: &mut S)
+            where
+                This: Erc721Virtual,
+                S: TopLevelStorage + BorrowMut<Erc721<This>>,
+            {
+                println!("call pausable update");
+                Base::update(storage);
+            }
         }
     }
 
-    #[derive(Debug, Default)]
-    pub struct Erc721Base<T: Erc721Virtual> {
-        phantom_data: PhantomData<T>,
-    }
+    pub mod base {
+        use super::{Erc721, Erc721Virtual};
+        use crate::stylus_lib::TopLevelStorage;
+        use std::borrow::BorrowMut;
+        use std::marker::PhantomData;
 
-    impl<T: Erc721Virtual> Erc721Base<T> {
-        pub fn get_pausable<S>(storage: &mut S) -> &mut Erc721Pausable<T>
-        where
-            S: TopLevelStorage + BorrowMut<Erc721<T>>,
-        {
-            &mut storage.borrow_mut().pausable
+        #[derive(Debug, Default)]
+        pub struct Erc721Base<T: Erc721Virtual> {
+            phantom_data: PhantomData<T>,
+        }
+
+        impl<T: Erc721Virtual> Erc721Base<T> {
+            pub fn transfer<S>(storage: &mut S)
+            where
+                S: TopLevelStorage + BorrowMut<Erc721<T>>,
+            {
+                println!("call base transfer");
+                T::update(storage);
+            }
+        }
+
+        #[derive(Debug, Default)]
+        pub struct Erc721BaseOverride;
+
+        impl Erc721Virtual for Erc721BaseOverride {
+            fn update<S, T>(storage: &mut S)
+            where
+                T: Erc721Virtual,
+                S: TopLevelStorage + BorrowMut<Erc721<T>>,
+            {
+                println!("call base update")
+            }
         }
     }
 }
 
-use crate::oz_lib::{Erc721, Erc721Override, Erc721Pausable};
-use crate::stylus_lib::TopLevelStorage;
-use std::borrow::{Borrow, BorrowMut};
+// NOTE: client code
+
+type Override = Erc721PausableOverride<Erc721BaseOverride>;
 
 #[derive(Default)]
 struct Token {
-    erc721: Erc721<Erc721Override>,
+    erc721: Erc721<Override>,
 }
 
-impl Borrow<Erc721<Erc721Override>> for Token {
-    fn borrow(&self) -> &Erc721<Erc721Override> {
+impl Borrow<Erc721<Override>> for Token {
+    fn borrow(&self) -> &Erc721<Override> {
         &self.erc721
     }
 }
 
-impl BorrowMut<Erc721<Erc721Override>> for Token {
-    fn borrow_mut(&mut self) -> &mut Erc721<Erc721Override> {
+impl BorrowMut<Erc721<Override>> for Token {
+    fn borrow_mut(&mut self) -> &mut Erc721<Override> {
         &mut self.erc721
     }
 }
@@ -77,6 +118,5 @@ impl TopLevelStorage for Token {}
 
 fn main() {
     let mut token = Token::default();
-    let base = Erc721Pausable::<Erc721Override>::get_erc721base(&mut token);
-    dbg!(&base);
+    Erc721Base::<Override>::transfer(&mut token);
 }
