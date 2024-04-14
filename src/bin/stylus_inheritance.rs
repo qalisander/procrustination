@@ -1,15 +1,12 @@
 mod stylus_lib {
-    pub trait TopLevelStorage {
-        type Extension;
+    use std::borrow::BorrowMut;
 
-        fn get_extension_mut(&mut self) -> &mut Self::Extension;
-    }
-
-    // pub trait Extension {}
+    pub trait TopLevelStorage {}
 }
 
 mod oz_lib {
     use crate::stylus_lib::TopLevelStorage;
+    use std::borrow::BorrowMut;
     use std::marker::PhantomData;
 
     pub trait Erc721Virtual {}
@@ -21,7 +18,7 @@ mod oz_lib {
 
     #[derive(Debug, Default)]
     pub struct Erc721<T: Erc721Virtual> {
-        erc721: Erc721Base<T>,
+        base: Erc721Base<T>,
         pausable: Erc721Pausable<T>,
         phantom_data: PhantomData<T>,
     }
@@ -32,10 +29,11 @@ mod oz_lib {
     }
 
     impl<T: Erc721Virtual> Erc721Pausable<T> {
-        pub fn get_erc721base(
-            storage: &mut impl TopLevelStorage<Extension = Erc721<T>>,
-        ) -> &mut Erc721Base<T> {
-            &mut storage.get_extension_mut().erc721
+        pub fn get_erc721base<S>(storage: &mut S) -> &mut Erc721Base<T>
+        where
+            S: TopLevelStorage + BorrowMut<Erc721<T>>,
+        {
+            &mut storage.borrow_mut().base
         }
     }
 
@@ -45,29 +43,37 @@ mod oz_lib {
     }
 
     impl<T: Erc721Virtual> Erc721Base<T> {
-        pub fn get_pausable(
-            storage: &mut impl TopLevelStorage<Extension = Erc721<T>>,
-        ) -> &mut Erc721Pausable<T> {
-            &mut storage.get_extension_mut().pausable
+        pub fn get_pausable<S>(storage: &mut S) -> &mut Erc721Pausable<T>
+        where
+            S: TopLevelStorage + BorrowMut<Erc721<T>>,
+        {
+            &mut storage.borrow_mut().pausable
         }
     }
 }
 
 use crate::oz_lib::{Erc721, Erc721Override, Erc721Pausable};
 use crate::stylus_lib::TopLevelStorage;
+use std::borrow::{Borrow, BorrowMut};
 
 #[derive(Default)]
 struct Token {
     erc721: Erc721<Erc721Override>,
 }
 
-impl TopLevelStorage for Token {
-    type Extension = Erc721<Erc721Override>;
+impl Borrow<Erc721<Erc721Override>> for Token {
+    fn borrow(&self) -> &Erc721<Erc721Override> {
+        &self.erc721
+    }
+}
 
-    fn get_extension_mut(&mut self) -> &mut Self::Extension {
+impl BorrowMut<Erc721<Erc721Override>> for Token {
+    fn borrow_mut(&mut self) -> &mut Erc721<Erc721Override> {
         &mut self.erc721
     }
 }
+
+impl TopLevelStorage for Token {}
 
 fn main() {
     let mut token = Token::default();
