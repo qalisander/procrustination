@@ -22,7 +22,7 @@ mod oz_lib {
     // Other functions can be added to this update function.
     // Or associated type for every "virtual" method can be used,
     // that will be restricted with trait named like (Erc721UpdateVirtual).
-    pub trait Erc721Virtual {
+    pub trait Erc721Virtual: 'static + std::fmt::Debug {
         fn update<S, T>(storage: &mut S)
         where
             T: Erc721Virtual,
@@ -60,6 +60,8 @@ mod oz_lib {
                 This: Erc721Virtual,
                 S: TopLevelStorage + BorrowMut<Erc721<This>>,
             {
+                let p: &mut Erc721Pausable<This> = storage.get_storage();
+                dbg!(&p);
                 println!("call pausable update");
                 Base::update::<S, _>(storage);
             }
