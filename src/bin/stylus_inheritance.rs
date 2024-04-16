@@ -2,7 +2,11 @@
 mod stylus_lib {
     // Stylus sdk demands this trait to be implemented for
     // the terminal struct of the smart contract.
-    pub trait TopLevelStorage {}
+    pub trait TopLevelStorage {
+        fn get_storage<T: 'static>(&mut self) -> &mut T {
+            panic!("arbitrary storage access is not implemented",)
+        }
+    }
 }
 
 // aka rust_contracts_stylus
@@ -28,12 +32,13 @@ mod oz_lib {
     // Library contract that will be reused by our consumers
     #[derive(Debug, Default)]
     pub struct Erc721<T: Erc721Virtual> {
-        base: Erc721Base<T>,
-        pausable: Erc721Pausable<T>,
+        pub base: Erc721Base<T>,
+        pub pausable: Erc721Pausable<T>,
     }
 
     pub mod pausable {
         use super::{Erc721, Erc721Virtual};
+        use crate::oz_lib::base::Erc721Base;
         use crate::stylus_lib::TopLevelStorage;
         use std::borrow::BorrowMut;
         use std::marker::PhantomData;
@@ -56,7 +61,7 @@ mod oz_lib {
                 S: TopLevelStorage + BorrowMut<Erc721<This>>,
             {
                 println!("call pausable update");
-                Base::update(storage);
+                Base::update::<S, _>(storage);
             }
         }
     }
@@ -100,6 +105,7 @@ mod oz_lib {
     }
 }
 
+use std::any::{Any, TypeId};
 // Client code
 use crate::oz_lib::base::Erc721Base;
 use crate::oz_lib::{Erc721, Erc721Virtual};
@@ -137,7 +143,21 @@ impl UserToken {
 }
 
 // UserToken is terminal struct of contract. Then it should be TopLevelStorage.
-impl TopLevelStorage for UserToken {}
+impl TopLevelStorage for UserToken {
+    fn get_storage<T: 'static>(&mut self) -> &mut T {
+        let pausable_type_id = self.erc721.pausable.type_id();
+        let base_type_id = self.erc721.base.type_id();
+
+        match std::any::TypeId::of::<T>() {
+            pausable_type_id => unsafe { std::mem::transmute::<_, _>(&mut self.erc721.pausable) },
+            base_type_id => unsafe { std::mem::transmute::<_, _>(&mut self.erc721.base) },
+            _ => panic!(
+                "storage for type doesn't exist - type name is {}",
+                std::any::type_name::<T>()
+            ),
+        }
+    }
+}
 
 // Auto implemented with #[borrow] proc macro from stylus lib.
 impl Borrow<Erc721<Override>> for UserToken {
