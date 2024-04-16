@@ -145,18 +145,18 @@ impl UserToken {
 }
 
 // UserToken is terminal struct of contract. Then it should be TopLevelStorage.
+// may be for auto implementation introduce Storage trait
 impl TopLevelStorage for UserToken {
     fn get_storage<T: 'static>(&mut self) -> &mut T {
-        let pausable_type_id = self.erc721.pausable.type_id();
-        let base_type_id = self.erc721.base.type_id();
-
-        match std::any::TypeId::of::<T>() {
-            pausable_type_id => unsafe { std::mem::transmute::<_, _>(&mut self.erc721.pausable) },
-            base_type_id => unsafe { std::mem::transmute::<_, _>(&mut self.erc721.base) },
-            _ => panic!(
+        if TypeId::of::<T>() == self.erc721.pausable.type_id() {
+            unsafe { std::mem::transmute::<_, _>(&mut self.erc721.pausable) }
+        } else if TypeId::of::<T>() == self.erc721.base.type_id() {
+            unsafe { std::mem::transmute::<_, _>(&mut self.erc721.base) }
+        } else {
+            panic!(
                 "storage for type doesn't exist - type name is {}",
                 std::any::type_name::<T>()
-            ),
+            )
         }
     }
 }
