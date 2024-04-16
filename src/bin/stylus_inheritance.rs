@@ -26,7 +26,7 @@ mod oz_lib {
         fn update<S, T>(storage: &mut S)
         where
             T: Erc721Virtual,
-            S: TopLevelStorage + BorrowMut<Erc721<T>>;
+            S: TopLevelStorage;
     }
 
     // Library contract that will be reused by our consumers
@@ -58,12 +58,12 @@ mod oz_lib {
             fn update<S, This>(storage: &mut S)
             where
                 This: Erc721Virtual,
-                S: TopLevelStorage + BorrowMut<Erc721<This>>,
+                S: TopLevelStorage,
             {
                 let p: &mut Erc721Pausable<This> = storage.get_storage();
                 dbg!(&p);
                 println!("call pausable update");
-                Base::update::<S, _>(storage);
+                Base::update::<_, This>(storage);
             }
         }
     }
@@ -85,10 +85,10 @@ mod oz_lib {
             // Public transfer function of Erc721Base contract.
             pub fn transfer<S>(storage: &mut S)
             where
-                S: TopLevelStorage + BorrowMut<Erc721<T>>,
+                S: TopLevelStorage,
             {
                 println!("call base transfer");
-                T::update(storage);
+                T::update::<_, T>(storage);
             }
         }
 
@@ -99,7 +99,7 @@ mod oz_lib {
             fn update<S, T>(storage: &mut S)
             where
                 T: Erc721Virtual,
-                S: TopLevelStorage + BorrowMut<Erc721<T>>,
+                S: TopLevelStorage,
             {
                 println!("call base update")
             }
@@ -125,10 +125,10 @@ impl<Base: Erc721Virtual> Erc721Virtual for Erc721UserOverride<Base> {
     fn update<S, This>(storage: &mut S)
     where
         This: Erc721Virtual,
-        S: TopLevelStorage + BorrowMut<Erc721<This>>,
+        S: TopLevelStorage,
     {
         println!("call user update");
-        Base::update(storage);
+        Base::update::<_, This>(storage);
     }
 }
 
