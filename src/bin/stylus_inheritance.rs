@@ -60,8 +60,6 @@ mod oz_lib {
                 This: Erc721Virtual,
                 S: TopLevelStorage,
             {
-                let p: &mut Erc721Pausable<This> = storage.get_storage();
-                dbg!(&p);
                 println!("call pausable update");
                 Base::update::<_, This>(storage);
             }
@@ -127,12 +125,14 @@ impl<Base: Erc721Virtual> Erc721Virtual for Erc721UserOverride<Base> {
         This: Erc721Virtual,
         S: TopLevelStorage,
     {
+        let p: &mut UserToken = storage.get_storage();
+        dbg!(p);
         println!("call user update");
         Base::update::<_, This>(storage);
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 struct UserToken {
     // Smth else can be at UserToken storage
     erc721: Erc721<Override>,
@@ -146,12 +146,15 @@ impl UserToken {
 
 // UserToken is terminal struct of contract. Then it should be TopLevelStorage.
 // may be for auto implementation introduce Storage trait
+// we can trigger on field prefix on name _
 impl TopLevelStorage for UserToken {
     fn get_storage<T: 'static>(&mut self) -> &mut T {
         if TypeId::of::<T>() == self.erc721.pausable.type_id() {
             unsafe { std::mem::transmute::<_, _>(&mut self.erc721.pausable) }
         } else if TypeId::of::<T>() == self.erc721.base.type_id() {
             unsafe { std::mem::transmute::<_, _>(&mut self.erc721.base) }
+        } else if TypeId::of::<T>() == TypeId::of::<Self>() {
+            unsafe { std::mem::transmute::<_, _>(self) }
         } else {
             panic!(
                 "storage for type doesn't exist - type name is {}",
