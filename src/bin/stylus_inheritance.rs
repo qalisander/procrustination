@@ -1,10 +1,27 @@
+#![feature(const_type_id)]
+#![feature(const_trait_impl)]
+#![feature(effects)]
+
 // aka stylus_sdk
 mod stylus_lib {
     // Stylus sdk demands this trait to be implemented for
     // the terminal struct of the smart contract.
-    pub trait TopLevelStorage {
-        fn get_storage<T: 'static>(&mut self) -> &mut T {
-            panic!("arbitrary storage access is not implemented",)
+    pub trait TopLevelStorage: StorageLevel {
+        fn get_storage<S: 'static>(&mut self) -> &mut S {
+            unsafe {
+                self.try_get_storage().unwrap_or_else(|| {
+                    panic!(
+                        "storage for type doesn't exist - type name is {}",
+                        core::any::type_name::<S>()
+                    )
+                })
+            }
+        }
+    }
+
+    pub unsafe trait StorageLevel {
+        unsafe fn try_get_storage<S: 'static>(&mut self) -> Option<&mut S> {
+            None
         }
     }
 }
@@ -23,10 +40,7 @@ mod oz_lib {
     // Or associated type for every "virtual" method can be used,
     // that will be restricted with trait named like (Erc721UpdateVirtual).
     pub trait Erc721Virtual: 'static + std::fmt::Debug {
-        fn update<S, T>(storage: &mut S)
-        where
-            T: Erc721Virtual,
-            S: TopLevelStorage;
+        fn update<V: Erc721Virtual>(storage: &mut impl TopLevelStorage);
     }
 
     // Library contract that will be reused by our consumers
@@ -37,10 +51,8 @@ mod oz_lib {
     }
 
     pub mod pausable {
-        use super::{Erc721, Erc721Virtual};
-        use crate::oz_lib::base::Erc721Base;
+        use super::Erc721Virtual;
         use crate::stylus_lib::TopLevelStorage;
-        use std::borrow::BorrowMut;
         use std::marker::PhantomData;
 
         #[derive(Debug, Default)]
@@ -53,23 +65,21 @@ mod oz_lib {
         // Here we can access Erc721<_> parent storage.
         // Basically Erc721Pausable and Erc721Base can be mutated.
         #[derive(Debug, Default)]
-        pub struct Erc721PausableOverride<T: Erc721Virtual>(PhantomData<T>);
+        pub struct Erc721PausableOverride<T: Erc721Virtual>(T);
         impl<Base: Erc721Virtual> Erc721Virtual for Erc721PausableOverride<Base> {
-            fn update<S, This>(storage: &mut S)
+            fn update<V>(storage: &mut impl TopLevelStorage)
             where
-                This: Erc721Virtual,
-                S: TopLevelStorage,
+                V: Erc721Virtual,
             {
                 println!("call pausable update");
-                Base::update::<_, This>(storage);
+                Base::update::<V>(storage);
             }
         }
     }
 
     pub mod base {
-        use super::{Erc721, Erc721Virtual};
+        use super::Erc721Virtual;
         use crate::stylus_lib::TopLevelStorage;
-        use std::borrow::BorrowMut;
         use std::marker::PhantomData;
 
         #[derive(Debug, Default)]
@@ -79,14 +89,11 @@ mod oz_lib {
         }
 
         // Simplicity sake, we omit #[external] attribute and stylus sdk dependency.
-        impl<T: Erc721Virtual> Erc721Base<T> {
+        impl<V: Erc721Virtual> Erc721Base<V> {
             // Public transfer function of Erc721Base contract.
-            pub fn transfer<S>(storage: &mut S)
-            where
-                S: TopLevelStorage,
-            {
+            pub fn transfer(storage: &mut impl TopLevelStorage) {
                 println!("call base transfer");
-                T::update::<_, T>(storage);
+                V::update::<V>(storage);
             }
         }
 
@@ -94,10 +101,9 @@ mod oz_lib {
         #[derive(Debug, Default)]
         pub struct Erc721BaseOverride;
         impl Erc721Virtual for Erc721BaseOverride {
-            fn update<S, T>(storage: &mut S)
+            fn update<V>(storage: &mut impl TopLevelStorage)
             where
-                T: Erc721Virtual,
-                S: TopLevelStorage,
+                V: Erc721Virtual,
             {
                 println!("call base update")
             }
@@ -105,30 +111,30 @@ mod oz_lib {
     }
 }
 
-use std::any::{Any, TypeId};
 // Client code
 use crate::oz_lib::base::Erc721Base;
+use crate::oz_lib::pausable::Erc721Pausable;
 use crate::oz_lib::{Erc721, Erc721Virtual};
-use crate::stylus_lib::TopLevelStorage;
+use crate::stylus_lib::{StorageLevel, TopLevelStorage};
+use itertools::Update;
+use std::any::{Any, TypeId};
 use std::borrow::{Borrow, BorrowMut};
-use std::marker::PhantomData;
 
 type Override = Erc721UserOverride<oz_lib::Override>;
 
-// User can override but won't access storage of his own contract (UserToken)
+// User can override and access storage of his own contract (UserToken)
 // because of constraint of Erc721Virtual trait.
 #[derive(Debug, Default)]
-pub struct Erc721UserOverride<T: Erc721Virtual>(PhantomData<T>);
+pub struct Erc721UserOverride<T: Erc721Virtual>(T);
 impl<Base: Erc721Virtual> Erc721Virtual for Erc721UserOverride<Base> {
-    fn update<S, This>(storage: &mut S)
+    fn update<V>(storage: &mut impl TopLevelStorage)
     where
-        This: Erc721Virtual,
-        S: TopLevelStorage,
+        V: Erc721Virtual,
     {
         let p: &mut UserToken = storage.get_storage();
         dbg!(p);
         println!("call user update");
-        Base::update::<_, This>(storage);
+        Base::update::<V>(storage);
     }
 }
 
@@ -144,39 +150,23 @@ impl UserToken {
     }
 }
 
-// UserToken is terminal struct of contract. Then it should be TopLevelStorage.
-// may be for auto implementation introduce Storage trait
-// we can trigger on field prefix on name _
-impl TopLevelStorage for UserToken {
-    fn get_storage<T: 'static>(&mut self) -> &mut T {
-        if TypeId::of::<T>() == self.erc721.pausable.type_id() {
-            unsafe { std::mem::transmute::<_, _>(&mut self.erc721.pausable) }
-        } else if TypeId::of::<T>() == self.erc721.base.type_id() {
-            unsafe { std::mem::transmute::<_, _>(&mut self.erc721.base) }
-        } else if TypeId::of::<T>() == TypeId::of::<Self>() {
-            unsafe { std::mem::transmute::<_, _>(self) }
+unsafe impl StorageLevel for UserToken {
+    unsafe fn try_get_storage<S: 'static>(&mut self) -> Option<&mut S> {
+        if TypeId::of::<S>() == self.erc721.pausable.type_id() {
+            Some(unsafe { std::mem::transmute::<_, _>(&mut self.erc721.pausable) })
+        } else if TypeId::of::<S>() == self.erc721.base.type_id() {
+            Some(unsafe { std::mem::transmute::<_, _>(&mut self.erc721.base) })
+        } else if TypeId::of::<S>() == TypeId::of::<Self>() {
+            Some(unsafe { &mut *(self as *mut Self as *mut S) })
         } else {
-            panic!(
-                "storage for type doesn't exist - type name is {}",
-                std::any::type_name::<T>()
-            )
+            None
         }
     }
 }
 
-// Auto implemented with #[borrow] proc macro from stylus lib.
-impl Borrow<Erc721<Override>> for UserToken {
-    fn borrow(&self) -> &Erc721<Override> {
-        &self.erc721
-    }
-}
-
-// Auto implemented with #[borrow] proc macro from stylus lib.
-impl BorrowMut<Erc721<Override>> for UserToken {
-    fn borrow_mut(&mut self) -> &mut Erc721<Override> {
-        &mut self.erc721
-    }
-}
+// UserToken is terminal struct of contract. Then it should be TopLevelStorage.
+// Should be auto implemented recursively for every inner contract
+impl TopLevelStorage for UserToken {}
 
 fn main() {
     let mut token = UserToken::default();
