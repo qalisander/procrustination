@@ -1,13 +1,9 @@
-#![feature(const_type_id)]
-#![feature(const_trait_impl)]
-#![feature(effects)]
-
 // aka stylus_sdk
 mod stylus_lib {
     // Stylus sdk demands this trait to be implemented for
     // the terminal struct of the smart contract.
     pub trait TopLevelStorage: StorageLevel {
-        fn get_storage<S: 'static>(&mut self) -> &mut S {
+        fn get_storage<S: StorageLevel + 'static>(&mut self) -> &mut S {
             unsafe {
                 self.try_get_storage().unwrap_or_else(|| {
                     panic!(
@@ -20,7 +16,7 @@ mod stylus_lib {
     }
 
     pub unsafe trait StorageLevel {
-        unsafe fn try_get_storage<S: 'static>(&mut self) -> Option<&mut S> {
+        unsafe fn try_get_storage<S: StorageLevel + 'static>(&mut self) -> Option<&mut S> {
             None
         }
     }
