@@ -36,7 +36,10 @@ mod oz_lib {
     // Or associated type for every "virtual" method can be used,
     // that will be restricted with trait named like (Erc721UpdateVirtual).
     pub trait Erc721Virtual: 'static + std::fmt::Debug {
-        fn update<V: Erc721Virtual>(storage: &mut impl TopLevelStorage);
+        type Base: Erc721Virtual;
+        fn update<V: Erc721Virtual>(storage: &mut impl TopLevelStorage) {
+            Self::Base::update::<V>(storage);
+        }
     }
 
     // Library contract that will be reused by our consumers
@@ -63,6 +66,7 @@ mod oz_lib {
         #[derive(Debug, Default)]
         pub struct Erc721PausableOverride<T: Erc721Virtual>(T);
         impl<Base: Erc721Virtual> Erc721Virtual for Erc721PausableOverride<Base> {
+            type Base = Base;
             fn update<V>(storage: &mut impl TopLevelStorage)
             where
                 V: Erc721Virtual,
@@ -97,6 +101,7 @@ mod oz_lib {
         #[derive(Debug, Default)]
         pub struct Erc721BaseOverride;
         impl Erc721Virtual for Erc721BaseOverride {
+            type Base = Self;
             fn update<V>(storage: &mut impl TopLevelStorage)
             where
                 V: Erc721Virtual,
@@ -123,6 +128,7 @@ type Override = Erc721UserOverride<oz_lib::Override>;
 #[derive(Debug, Default)]
 pub struct Erc721UserOverride<T: Erc721Virtual>(T);
 impl<Base: Erc721Virtual> Erc721Virtual for Erc721UserOverride<Base> {
+    type Base = Base;
     fn update<V>(storage: &mut impl TopLevelStorage)
     where
         V: Erc721Virtual,
