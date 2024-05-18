@@ -2,8 +2,8 @@
 mod stylus_lib {
     // Stylus sdk demands this trait to be implemented for
     // the terminal struct of the smart contract.
-    pub trait TopLevelStorage: StorageLevel {
-        fn get_storage<S: StorageLevel + 'static>(&mut self) -> &mut S {
+    pub trait TopLevelStorage: StorageLevel<Self> {
+        fn get_storage<S: StorageLevel<Self> + 'static>(&mut self) -> &mut S {
             unsafe {
                 self.try_get_storage().unwrap_or_else(|| {
                     panic!(
@@ -15,8 +15,8 @@ mod stylus_lib {
         }
     }
 
-    pub unsafe trait StorageLevel {
-        unsafe fn try_get_storage<S: StorageLevel + 'static>(&mut self) -> Option<&mut S> {
+    pub unsafe trait StorageLevel<TS: TopLevelStorage> {
+        unsafe fn try_get_storage<S: StorageLevel<TS> + 'static>(&mut self) -> Option<&mut S> {
             None
         }
     }
@@ -152,7 +152,7 @@ impl UserToken {
     }
 }
 
-unsafe impl StorageLevel for UserToken {
+unsafe impl StorageLevel<UserToken> for UserToken {
     unsafe fn try_get_storage<S: 'static>(&mut self) -> Option<&mut S> {
         if TypeId::of::<S>() == self.erc721.pausable.type_id() {
             Some(unsafe { std::mem::transmute::<_, _>(&mut self.erc721.pausable) })
