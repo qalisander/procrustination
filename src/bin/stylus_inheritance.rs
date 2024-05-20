@@ -133,7 +133,6 @@ impl<Base: Erc721Virtual> Erc721Virtual for Erc721UserOverride<Base> {
     where
         V: Erc721Virtual,
     {
-
         println!("call user update");
         Base::update::<V>(storage);
     }
