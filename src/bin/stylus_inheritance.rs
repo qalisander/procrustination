@@ -1,3 +1,11 @@
+use std::any::{Any, TypeId};
+use std::borrow::{Borrow, BorrowMut};
+
+use crate::oz_lib::{Erc721, Erc721Virtual};
+// Client code
+use crate::oz_lib::base::Erc721Base;
+use crate::stylus_lib::{StorageLevel, TopLevelStorage};
+
 // aka stylus_sdk
 mod stylus_lib {
     // Stylus sdk demands this trait to be implemented for
@@ -24,12 +32,12 @@ mod stylus_lib {
 
 // aka rust_contracts_stylus
 mod oz_lib {
-    use crate::stylus_lib::TopLevelStorage;
-    use base::{Erc721Base, Erc721BaseOverride};
-    use pausable::{Erc721Pausable, Erc721PausableOverride};
     use std::borrow::BorrowMut;
 
-    pub type Override = Erc721PausableOverride<Erc721BaseOverride>;
+    use base::Erc721Base;
+    use pausable::Erc721Pausable;
+
+    use crate::stylus_lib::TopLevelStorage;
 
     // Trait used for overriding behaviour of update function.
     // Other functions can be added to this update function.
@@ -50,9 +58,11 @@ mod oz_lib {
     }
 
     pub mod pausable {
-        use super::Erc721Virtual;
-        use crate::stylus_lib::TopLevelStorage;
         use std::marker::PhantomData;
+
+        use crate::stylus_lib::TopLevelStorage;
+
+        use super::Erc721Virtual;
 
         #[derive(Debug, Default)]
         pub struct Erc721Pausable<T: Erc721Virtual> {
@@ -78,9 +88,11 @@ mod oz_lib {
     }
 
     pub mod base {
-        use super::Erc721Virtual;
-        use crate::stylus_lib::TopLevelStorage;
         use std::marker::PhantomData;
+
+        use crate::stylus_lib::TopLevelStorage;
+
+        use super::Erc721Virtual;
 
         #[derive(Debug, Default)]
         pub struct Erc721Base<T: Erc721Virtual> {
@@ -112,17 +124,8 @@ mod oz_lib {
     }
 }
 
-// Client code
-use crate::oz_lib::base::Erc721Base;
-use crate::oz_lib::pausable::Erc721Pausable;
-use crate::oz_lib::{Erc721, Erc721Virtual};
-use crate::stylus_lib::{StorageLevel, TopLevelStorage};
-use itertools::Update;
-use std::any::{Any, TypeId};
-use std::borrow::{Borrow, BorrowMut};
-
-type Override = Erc721UserOverride<oz_lib::Override>;
-
+type Override =
+    Erc721UserOverride<oz_lib::pausable::Erc721PausableOverride<oz_lib::base::Erc721BaseOverride>>;
 // User can override and access storage of his own contract (UserToken)
 // because of constraint of Erc721Virtual trait.
 #[derive(Debug, Default)]
