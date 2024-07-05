@@ -1,11 +1,3 @@
-use std::any::{Any, TypeId};
-use std::borrow::{Borrow, BorrowMut};
-
-use crate::oz_lib::{Erc721, Erc721Virtual};
-// Client code
-use crate::oz_lib::base::Erc721Base;
-use crate::stylus_lib::{StorageLevel, TopLevelStorage};
-
 // aka stylus_sdk
 mod stylus_lib {
     // Stylus sdk demands this trait to be implemented for
@@ -65,16 +57,16 @@ mod oz_lib {
         use super::Erc721Virtual;
 
         #[derive(Debug, Default)]
-        pub struct Erc721Pausable<T: Erc721Virtual> {
+        pub struct Erc721Pausable<V: Erc721Virtual> {
             // Other fields for pausable omitted for simplicity
-            phantom_data: PhantomData<T>,
+            phantom_data: PhantomData<V>,
         }
 
         // Overriding update function for pausalbe extension.
         // Here we can access Erc721<_> parent storage.
         // Basically Erc721Pausable and Erc721Base can be mutated.
         #[derive(Debug, Default)]
-        pub struct Erc721PausableOverride<T: Erc721Virtual>(T);
+        pub struct Erc721PausableOverride<B: Erc721Virtual>(B);
         impl<Base: Erc721Virtual> Erc721Virtual for Erc721PausableOverride<Base> {
             type Base = Base;
             fn update<V>(storage: &mut impl TopLevelStorage)
@@ -95,9 +87,9 @@ mod oz_lib {
         use super::Erc721Virtual;
 
         #[derive(Debug, Default)]
-        pub struct Erc721Base<T: Erc721Virtual> {
+        pub struct Erc721Base<V: Erc721Virtual> {
             // Other fields for erc721 missed for simplicity
-            phantom_data: PhantomData<T>,
+            phantom_data: PhantomData<V>,
         }
 
         // Simplicity sake, we omit #[external] attribute and stylus sdk dependency.
@@ -124,12 +116,20 @@ mod oz_lib {
     }
 }
 
+// Client code
+use std::any::{Any, TypeId};
+use std::borrow::{Borrow, BorrowMut};
+
+use crate::oz_lib::{Erc721, Erc721Virtual};
+use crate::oz_lib::base::Erc721Base;
+use crate::stylus_lib::{StorageLevel, TopLevelStorage};
+
 type Override =
     Erc721UserOverride<oz_lib::pausable::Erc721PausableOverride<oz_lib::base::Erc721BaseOverride>>;
 // User can override and access storage of his own contract (UserToken)
 // because of constraint of Erc721Virtual trait.
 #[derive(Debug, Default)]
-pub struct Erc721UserOverride<T: Erc721Virtual>(T);
+pub struct Erc721UserOverride<V: Erc721Virtual>(V);
 impl<Base: Erc721Virtual> Erc721Virtual for Erc721UserOverride<Base> {
     type Base = Base;
     fn update<V>(storage: &mut impl TopLevelStorage)
