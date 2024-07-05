@@ -120,8 +120,8 @@ mod oz_lib {
 use std::any::{Any, TypeId};
 use std::borrow::{Borrow, BorrowMut};
 
-use crate::oz_lib::{Erc721, Erc721Virtual};
 use crate::oz_lib::base::Erc721Base;
+use crate::oz_lib::{Erc721, Erc721Virtual};
 use crate::stylus_lib::{StorageLevel, TopLevelStorage};
 
 type Override =
