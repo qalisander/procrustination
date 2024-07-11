@@ -44,9 +44,9 @@ mod oz_lib {
 
     // Library contract that will be reused by our consumers
     #[derive(Debug, Default)]
-    pub struct Erc721<T: Erc721Virtual> {
-        pub base: Erc721Base<T>,
-        pub pausable: Erc721Pausable<T>,
+    pub struct Erc721<V: Erc721Virtual> {
+        pub base: Erc721Base<V>,
+        pub pausable: Erc721Pausable<V>,
     }
 
     pub mod pausable {
