@@ -1,28 +1,36 @@
 use ruint::aliases::U256;
-use ruint::{uint, Uint};
+use ruint::{uint, Bits, Uint};
 
-pub type FpVesta2 = Fp<Fp256Param>;
+pub type FpVesta2 = Fp<Fp256Param, 256, 4>;
 
-pub struct Fp<P: FpParam>(
-    Uint<{ <P as FpParam>::BITS }, { <P as FpParam>::LIMBS }>,
+pub struct Fp<P: FpParam<BITS, LIMBS>, const BITS: usize, const LIMBS: usize>(
+    Uint<BITS, LIMBS>,
     core::marker::PhantomData<P>,
 );
+
 pub struct Fp256Param;
-impl FpParam for Fp256Param {
-    const GENERATOR: U256 = uint!(5_U256);
+
+impl FpParam<256, 4> for Fp256Param {
     const MODULUS: U256 =
         uint!(28948022309329048855892746252171976963363056481941647379679742748393362948097_U256);
-    const BITS: usize = 256;
-    const LIMBS: usize = 4;
+    const GENERATOR: U256 = uint!(5_U256);
 }
 
-pub trait FpParam {
-    const MODULUS: Uint<{ <Self as FpParam>::BITS }, { <Self as FpParam>::LIMBS }>;
-    const GENERATOR: Uint<{ <Self as FpParam>::BITS }, { <Self as FpParam>::LIMBS }>;
-    const BITS: usize;
-    const LIMBS: usize;
+pub trait FpParam<const BITS: usize, const LIMBS: usize> {
+    const MODULUS: Uint<BITS, LIMBS>;
+    const GENERATOR: Uint<BITS, LIMBS>;
 }
 
 fn main() {
+    let uint = U256::from(0u64);
+    let bits = into_bits(uint);
+    let uint1 = bits.into_inner();
+
     print!("Hello, World!");
+}
+
+const fn into_bits<const BITS: usize, const LIMBS: usize>(
+    uint: Uint<BITS, LIMBS>,
+) -> Bits<BITS, LIMBS> {
+    Bits::from_limbs(uint.into_limbs())
 }
