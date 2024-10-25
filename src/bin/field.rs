@@ -1,3 +1,5 @@
+extern crate alloc;
+
 use ruint::aliases::U256;
 use ruint::{uint, Bits, Uint};
 
@@ -22,7 +24,10 @@ pub trait FpParam<const BITS: usize, const LIMBS: usize> {
 }
 
 fn main() {
-    let uint = U256::from(0u64);
+    let layout = alloc::alloc::Layout::from_size_align(17, 1).unwrap();
+    let ptr = unsafe { alloc::alloc::alloc(layout) };
+
+    let uint = uint!(5_U256);
     let bits = into_bits(uint);
     let uint1 = bits.into_inner();
 

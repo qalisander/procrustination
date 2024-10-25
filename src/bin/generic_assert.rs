@@ -1,8 +1,10 @@
+const RES: usize = div_64::<128>();
 fn main() {
     println!("Hello, World!");
-    let two = power_of_two::<8>();
-}
 
+    let arr = [0; RES];
+    println!("{:?}", arr);
+}
 
 /////////////////////////
 
@@ -37,6 +39,11 @@ pub(crate) const fn power_of_two<const N: usize>() {
     Assert::<N, 0>::POWER_OF_TWO;
 }
 
+#[allow(dead_code, path_statements, clippy::no_effect)]
+pub(crate) const fn div_64<const N: usize>() -> usize {
+    Assert::<N, 0>::DIV_64
+}
+
 #[allow(dead_code)]
 /// Const assert hack
 pub struct Assert<const L: usize, const R: usize>;
@@ -64,4 +71,7 @@ impl<const L: usize, const R: usize> Assert<L, R> {
 
     /// Const assert hack
     pub const POWER_OF_TWO: usize = 0 - (L & (L - 1));
+
+    /// Const assert hack
+    pub const DIV_64: usize = L.div_ceil(64);
 }
