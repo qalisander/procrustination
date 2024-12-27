@@ -20,6 +20,8 @@ mod oz_lib {
 
     // iterface
     pub trait IErc721: VErc721 {
+        const SELECTORS: [u32; 4] = [0, 1, 2, 3];
+
         fn transfer(&mut self) {
             println!("call base transfer");
             self.update()
@@ -162,7 +164,36 @@ impl Router for Erc721Example {
     }
 }
 
+macro_rules! const_assert {
+    ($x:expr $(,)?) => {
+        const_assert!($x, "const assertion failed",);
+    };
+    ($x:expr, $es:expr $(,)?) => {
+        const _: () = {
+            const fn assert_internal() {
+                if !$x {
+                    core::panic!($es);
+                }
+            }
+            const _: () = assert_internal();
+        };
+    };
+}
+
 fn main() {
+    const_assert!(selector_exists(10), "selector 10 not found");
+
     let mut erc721 = Erc721Example::default();
     erc721.transfer()
+}
+
+const fn selector_exists(selector: u32) -> bool {
+    let mut index = 0;
+    while index < <Erc721Example as IErc721>::SELECTORS.len() {
+        if selector == <Erc721Example as IErc721>::SELECTORS[index] {
+            return true;
+        }
+        index += 1;
+    }
+    return false;
 }
